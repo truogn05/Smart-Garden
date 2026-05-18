@@ -32,7 +32,7 @@ void callback(char* topic, uint8_t* payload, unsigned int length);
 // Averaging buffer for ADC
 const int ADC_SAMPLES = 64;
 int _soilReadings[ADC_SAMPLES];
-int _rainReadings[ADC_SAMPLE];
+int _rainReadings[ADC_SAMPLES];
 int _sampleIndex = 0;
 
 void setup() {
