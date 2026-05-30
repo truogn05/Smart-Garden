@@ -4,52 +4,73 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <Preferences.h>
+#include <functional>
+
+// Callback when MQTT reset command is received
+typedef std::function<void()> ResetCallback;
 
 /**
  * Handles WiFi credential storage and provisioning.
- * Stores SSID/password in ESP32 Preferences (non-volatile storage).
- * If no credentials stored, starts AP mode for provisioning.
+ *
+ * Boot sequence:
+ *  1. Load stored credentials from Preferences
+ *  2. Attempt WiFi connection with fast-fail timeout (5s demo mode)
+ *  3. If connected → normal operation
+ *  4. If failed → start AP mode with /reset page
+ *
+ * AP mode serves:
+ *  - GET /         → WiFi provisioning form
+ *  - POST /save    → save credentials, reboot
+ *  - GET /reset    → WiFi reset form (clears credentials, reboots)
+ *
+ * Remote reset via MQTT:
+ *  - subscribe to TOPIC_DEVICE_RESET_COMMAND
+ *  - when received: clearCredentials() + ESP.restart()
  */
 class WifiProvisioner {
 public:
-  WifiProvisioner(const char* apName = "SmartGarden-Setup");
+  WifiProvisioner(const char* apName = "SmartGarden");
 
-  // Load credentials from storage, connect if available
+  // Load credentials and attempt connection.
+  // Returns true if WiFi is connected, false if entered AP mode.
   bool begin();
 
-  // Start AP mode for provisioning (serve a simple form)
-  void startAP();
-
-  // Handle provisioning requests (call in loop if in AP mode)
+  // Call in loop() when in AP mode (no-op when connected)
   void handleProvisioning();
 
-  // Check if provisioning mode is active
+  // True when AP mode is active (awaiting credentials)
   bool isProvisioning() const { return _provisioning; }
 
-  // Save credentials
+  // True when WiFi is connected
+  bool isConnected() const { return _wifiConnected; }
+
+  // Save credentials from web form
   bool saveCredentials(const char* ssid, const char* password);
 
-  // Clear stored credentials
+  // Clear stored credentials (call before ESP.restart())
   void clearCredentials();
 
-  // Get stored SSID
-  String getSSID() const { return _ssid; }
+  // Trigger reset from MQTT callback. Returns true if credentials were cleared.
+  bool triggerReset();
 
-  // Get stored password
-  String getPassword() const { return _password; }
+  // Register callback for remote reset command
+  void onReset(ResetCallback cb) { _resetCallback = cb; }
+
+  String getSSID() const { return _ssid; }
+  IPAddress getAPIP() const { return WiFi.softAPIP(); }
 
 private:
   char _apName[32];
   String _ssid;
   String _password;
   bool _provisioning;
+  bool _wifiConnected;
   Preferences _prefs;
+  ResetCallback _resetCallback;
 
-  // Load from Preferences
   bool loadFromStorage();
-
-  // Connect with timeout
-  bool connectWithTimeout(uint32_t timeoutMs = 30000);
+  bool connectWithFastFail();
+  void startAP();
 };
 
 #endif // WIFI_PROVISIONER_H

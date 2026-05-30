@@ -23,22 +23,28 @@ export function verifyToken(token: string): JwtPayload | null {
 
 /**
  * Express middleware — attaches user to req.user or sends 401.
- * Reads from Authorization: Bearer <token> header.
+ * Reads from httpOnly cookie (browser) with Authorization: Bearer fallback (API clients).
  */
 export function requireAuth(req: Request, res: Response): boolean {
+  // Try Authorization header first (API clients)
   const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authorization header required' });
-    return false;
+  if (header?.startsWith('Bearer ')) {
+    const token = header.slice(7);
+    const payload = verifyToken(token);
+    if (payload) { req.user = payload; return true; }
   }
 
-  const token = header.slice(7);
+  // Fall back to httpOnly cookie (browser clients)
+  const token = req.cookies?.jwt;
+  if (!token) {
+    res.status(401).json({ error: 'Authorization required' });
+    return false;
+  }
   const payload = verifyToken(token);
   if (!payload) {
     res.status(401).json({ error: 'Invalid or expired token' });
     return false;
   }
-
   req.user = payload;
   return true;
 }

@@ -1,20 +1,41 @@
 #include "MqttManager.h"
 
-MqttManager::MqttManager(Client& client, const char* deviceCode)
-  : _client(client), _reconnectInterval(MQTT_RECONNECT_INITIAL_MS), _shouldReconnect(false) {
+MqttManager::MqttManager(const char* deviceCode)
+  : _client(_wifiClient), _reconnectInterval(MQTT_RECONNECT_INITIAL_MS) {
   strncpy(_deviceCode, deviceCode, sizeof(_deviceCode) - 1);
+  _deviceCode[sizeof(_deviceCode) - 1] = '\0';
+
   _client.setBufferSize(MQTT_BUFFER_SIZE);
+  _client.setKeepAlive(15);
+
+#ifdef MQTT_USE_TLS
+  // HiveMQ Cloud: TLS required
+  _wifiClient.setInsecure();  // HiveMQ uses a wildcard cert per region
+#endif
 }
 
 bool MqttManager::connect() {
-  // Generate client ID with device code prefix
   char clientId[64];
-  snprintf(clientId, sizeof(clientId), "smartgarden-%s", _deviceCode);
+  snprintf(clientId, sizeof(clientId), "%s%s", MQTT_CLIENT_ID_PREFIX, _deviceCode);
 
-  // Attempt connection
-  if (_client.connect(clientId, nullptr, nullptr, TOPIC_BASE "/device/lwt", 1, true, "{\"status\":\"offline\"}")) {
+#ifdef MQTT_USE_TLS
+  Serial.printf("[MQTT] Connecting (TLS) to %s:%d as %s\n", MQTT_BROKER, MQTT_PORT, clientId);
+#else
+  Serial.printf("[MQTT] Connecting (plain) to %s:%d as %s\n", MQTT_BROKER, MQTT_PORT, clientId);
+#endif
+
+  char lwtTopic[64];
+  snprintf(lwtTopic, sizeof(lwtTopic), TOPIC_LWT, _deviceCode);
+
+#ifdef MQTT_USE_TLS
+  if (_client.connect(clientId, MQTT_USERNAME, MQTT_PASSWORD,
+      lwtTopic, 1, true, "{\"status\":\"offline\"}")) {
+#else
+  // Local Mosquitto: no auth
+  if (_client.connect(clientId)) {
+#endif
     _reconnectInterval = MQTT_RECONNECT_INITIAL_MS;
-    Serial.printf("[MQTT] Connected as %s\n", clientId);
+    Serial.println("[MQTT] Connected");
     return true;
   }
 
@@ -35,16 +56,18 @@ void MqttManager::reconnect() {
 
   if (connect()) return;
 
-  // Exponential backoff: 1s → 2s → 4s → 8s → ... → 60s
-  _reconnectInterval = min(_reconnectInterval * 2, MQTT_RECONNECT_MAX_MS);
+  _reconnectInterval = min<uint32_t>(_reconnectInterval * 2, MQTT_RECONNECT_MAX_MS);
 }
 
 bool MqttManager::publish(const char* topic, const char* payload, bool retained) {
+  return publish(topic, payload, QOS_TELEMETRY, retained);
+}
+
+bool MqttManager::publish(const char* topic, const char* payload, uint8_t qos, bool retained) {
   if (!_client.connected()) {
     reconnect();
     if (!_client.connected()) return false;
   }
-
   return _client.publish(topic, payload, retained);
 }
 
@@ -53,7 +76,6 @@ bool MqttManager::subscribe(const char* topic, uint8_t qos) {
     reconnect();
     if (!_client.connected()) return false;
   }
-
   return _client.subscribe(topic, qos);
 }
 
@@ -62,17 +84,9 @@ void MqttManager::loop() {
     reconnect();
     return;
   }
-
   _client.loop();
 }
 
-void MqttManager::setCallback(MQTT_CALLBACK_SIGNATURE) {
-  _client.setCallback(callback);
-}
-
-void MqttManager::setLWT(const char* topic, const char* payload) {
-  // LWT is set in connect() call above
-  (void)topic;
-  (void)payload;
-  // Note: PubSubClient sets LWT in the connect() call
+void MqttManager::setCallback(MQTT_CALLBACK_SIGNATURE cb) {
+  _client.setCallback(cb);
 }

@@ -68,6 +68,25 @@ CREATE INDEX IF NOT EXISTS idx_predictions_device_time ON ai_predictions(device_
 CREATE INDEX IF NOT EXISTS idx_pump_events_device ON pump_events(device_code, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pump_status_device ON pump_status(device_code, recorded_at DESC);
 
+-- Enable RLS (write policies allow all — server uses service role key, so RLS doesn't apply)
+-- Read policies are public since this is a single-user hackathon demo
+-- For production: move to Supabase Auth and use auth.uid() / auth.role() policies
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sensor_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_predictions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pump_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pump_status ENABLE ROW LEVEL SECURITY;
+
+-- All tables: public read (demo single-user), server uses service role key for writes
+CREATE POLICY "Public read users" ON users FOR SELECT USING (true);
+CREATE POLICY "Public read devices" ON devices FOR SELECT USING (true);
+CREATE POLICY "Public read sensor_data" ON sensor_data FOR SELECT USING (true);
+CREATE POLICY "Public read ai_predictions" ON ai_predictions FOR SELECT USING (true);
+CREATE POLICY "Public read pump_events" ON pump_events FOR SELECT USING (true);
+CREATE POLICY "Public read pump_status" ON pump_status FOR SELECT USING (true);
+
 -- Seed pre-registered devices (hardcoded per plan)
 INSERT INTO devices (device_code, device_type, device_name) VALUES
   ('SENSOR_001', 'sensor', 'Garden Sensor'),

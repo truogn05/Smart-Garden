@@ -52,7 +52,7 @@ export function startMqttBridge(broadcastFn: BroadcastFn): void {
   });
 }
 
-async function handleMessage(topic: string, payload: Buffer): Promise<void> {
+export async function handleMessage(topic: string, payload: Buffer): Promise<void> {
   // Parse topic: smartgarden/{device_code}/{type}/{subtype}
   const parts = topic.split('/');
   if (parts.length < 3 || parts[0] !== 'smartgarden') return;

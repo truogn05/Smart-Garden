@@ -50,7 +50,13 @@ router.post('/register', async (req: Request, res: Response) => {
 
   const payload: JwtPayload = { userId: user.id, email: user.email };
   const token = signToken(payload);
-  res.status(201).json({ jwt: token, user: { id: user.id, email: user.email } });
+  res.cookie('jwt', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  res.status(201).json({ user: { id: user.id, email: user.email } });
 });
 
 router.post('/login', async (req: Request, res: Response) => {
@@ -80,7 +86,13 @@ router.post('/login', async (req: Request, res: Response) => {
 
   const payload: JwtPayload = { userId: user.id, email: user.email };
   const token = signToken(payload);
-  res.json({ jwt: token, user: { id: user.id, email: user.email } });
+  res.cookie('jwt', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  res.json({ user: { id: user.id, email: user.email } });
 });
 
 router.get('/me', (req: AuthRequest, res: Response) => {

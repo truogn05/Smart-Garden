@@ -157,9 +157,33 @@ describe('Device endpoints', () => {
     expect(res.status).toBe(404);
   });
 
-  it('POST /api/devices/SENSOR_001/reset returns 500 when MQTT not connected', async () => {
-    // MQTT isn't connected in tests, so this should fail gracefully
+  it('GET /api/devices/SENSOR_001/reset/init returns a token', async () => {
+    const res = await request(app).get('/api/devices/SENSOR_001/reset/init');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('token');
+    expect(res.body.expires_in).toBe(60);
+  });
+
+  it('POST /api/devices/SENSOR_001/reset returns 400 without token', async () => {
     const res = await request(app).post('/api/devices/SENSOR_001/reset');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Invalid or expired reset token');
+  });
+
+  it('POST /api/devices/SENSOR_001/reset returns 400 with wrong token', async () => {
+    await request(app).get('/api/devices/SENSOR_001/reset/init');
+    const res = await request(app)
+      .post('/api/devices/SENSOR_001/reset')
+      .send({ token: 'wrong-token' });
+    expect(res.status).toBe(400);
+  });
+
+  it('POST /api/devices/SENSOR_001/reset returns 500 when MQTT not connected', async () => {
+    const initRes = await request(app).get('/api/devices/SENSOR_001/reset/init');
+    const token = initRes.body.token;
+    const res = await request(app)
+      .post('/api/devices/SENSOR_001/reset')
+      .send({ token });
     expect(res.status).toBe(500);
   });
 });

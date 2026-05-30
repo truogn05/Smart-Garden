@@ -8,8 +8,11 @@ import type { Response } from 'express';
 const clients = new Map<Response, number>(); // res → lastSeen timestamp
 const HEARTBEAT_MS = 30_000;
 const STALE_THRESHOLD_MS = 90_000;
+const SWEEP_MS = HEARTBEAT_MS / 2; // sweep twice per heartbeat cycle
 
-// Sweep stale clients every 30s
+// Sweep stale clients — runs every 15s so clients are pruned at ~90s, not 30s
+// (heartbeat collision: if sweep and heartbeat fire at the same moment, a client
+// that just missed a heartbeat could be swept immediately, violating the 90s rule)
 setInterval(() => {
   const now = Date.now();
   for (const [res, lastSeen] of clients) {
@@ -18,7 +21,7 @@ setInterval(() => {
       clients.delete(res);
     }
   }
-}, HEARTBEAT_MS);
+}, SWEEP_MS);
 
 export function addClient(res: Response): void {
   clients.set(res, Date.now());

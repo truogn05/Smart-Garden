@@ -1,185 +1,169 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
+#include <ArduinoJson.h>
+#include <functional>
 #include "Config.h"
 #include "MqttManager.h"
+#include "WifiProvisioner.h"
+#include "EspNowManager.h"
 
-// Hardware: Relay on GPIO26 (active LOW)
+// ── Hardware ───────────────────────────────────────────────────────────────────
 #define RELAY_PIN 26
 
-// Global instance
-WiFiClient _wifiClient;
+// ── Globals ────────────────────────────────────────────────────────────────────
+WifiProvisioner _wifi;
 MqttManager* _mqtt = nullptr;
+EspNowManager _espnow;
 
-// State
 bool _pumpRunning = false;
 uint32_t _pumpStartTime = 0;
 uint32_t _pumpDuration = 0;
 char _currentCmdId[32] = {0};
 
-// Forward declarations
-void setupWiFi();
-void setupMQTT();
-void handlePumpCommand(char* payload);
+// ── Forward declarations ───────────────────────────────────────────────────────
 void publishStatus();
-void callback(char* topic, uint8_t* payload, unsigned int length);
+void sendAck(const char* cmdId);
 
+// ── Setup ──────────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  delay(800);
 
-  Serial.println("\n=== SmartGarden Pump ESP32 ===");
-  Serial.printf("Device Type: %s\n", DEVICE_TYPE);
+  Serial.println("\n=== SmartGarden Pump ===");
+  Serial.printf("Device: %s\n", DEVICE_CODE);
 
-  // Set device code from MAC address
-  char deviceCode[32];
-  uint8_t mac[6];
-  WiFi.macAddress(mac);
-  snprintf(deviceCode, sizeof(deviceCode), "PUMP_%02X%02X%02X", mac[3], mac[4], mac[5]);
-
-  // Initialize relay pin
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);  // Relay OFF (active LOW)
+  digitalWrite(RELAY_PIN, HIGH);  // OFF (active LOW)
 
-  // Setup subsystems
-  setupWiFi();
+  if (!_wifi.begin()) {
+    Serial.println("[WiFi] AP mode active — visit /reset page to provision");
+  }
 
-  _mqtt = new MqttManager(_wifiClient, deviceCode);
-  _mqtt->setCallback(callback);
-  setupMQTT();
+  _espnow.begin(true);
+  _espnow.onCredentialsReceived([](const char* ssid, const char* password) {
+    Serial.printf("[ESPNOW] Sensor received WiFi: SSID=%s\n", ssid);
+  });
+
+  _mqtt = new MqttManager(DEVICE_CODE);
+  _mqtt->setCallback([](char* topic, uint8_t* payload, unsigned int length) {
+    payload[length] = '\0';
+    Serial.printf("[MQTT] Rx: %s → %s\n", topic, (char*)payload);
+
+    // ── Pump command ─────────────────────────────────────────────────────────
+    if (strstr(topic, "/pump/command") != nullptr) {
+      StaticJsonDocument<256> doc;
+      if (deserializeJson(doc, payload) != DeserializationError::Ok) {
+        Serial.println("[PUMP] Malformed JSON — ignored");
+        return;
+      }
+
+      const char* action = doc["action"];
+      if (!action) return;
+
+      if (strcmp(action, "start") == 0) {
+        int duration = doc["duration"] | 90;
+        const char* cmdId = doc["cmd_id"] | "";
+        if (cmdId[0]) strncpy(_currentCmdId, cmdId, sizeof(_currentCmdId) - 1);
+
+        digitalWrite(RELAY_PIN, LOW);
+        _pumpRunning = true;
+        _pumpDuration = duration;
+        _pumpStartTime = millis();
+        Serial.printf("[PUMP] Start %us (cmdId=%s)\n", duration, _currentCmdId);
+        sendAck(_currentCmdId);
+      }
+      else if (strcmp(action, "stop") == 0) {
+        digitalWrite(RELAY_PIN, HIGH);
+        _pumpRunning = false;
+        Serial.println("[PUMP] Stopped");
+        publishStatus();
+      }
+    }
+
+    // ── Remote WiFi reset ────────────────────────────────────────────────────
+    if (strstr(topic, "/reset/command") != nullptr) {
+      StaticJsonDocument<128> doc;
+      if (deserializeJson(doc, payload) == DeserializationError::Ok) {
+        if (strcmp(doc["action"], "clear_wifi") == 0) {
+          Serial.println("[PUMP] Reset command — clearing WiFi, rebooting");
+          _wifi.clearCredentials();
+          delay(500);
+          ESP.restart();
+        }
+      }
+    }
+  });
+
+  _mqtt->connect();
+
+  char commandTopic[64];
+  snprintf(commandTopic, sizeof(commandTopic), TOPIC_PUMP_COMMAND, DEVICE_CODE);
+  _mqtt->subscribe(commandTopic, QOS_COMMAND);
+  Serial.printf("[MQTT] Subscribed: %s\n", commandTopic);
 
   Serial.println("=== Pump Ready ===");
 }
 
+// ── Main loop ──────────────────────────────────────────────────────────────────
 void loop() {
-  // Ensure WiFi
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[WIFI] Reconnecting...");
-    WiFi.reconnect();
-    delay(1000);
+  if (_wifi.isProvisioning()) {
+    _wifi.handleProvisioning();
     return;
   }
 
-  // MQTT loop
-  if (_mqtt) {
-    _mqtt->loop();
+  if (!_wifi.isConnected()) return;
+  _espnow.loop();
+  _mqtt->loop();
 
-    // Handle pump timing
-    if (_pumpRunning && _pumpDuration > 0) {
-      uint32_t elapsed = (millis() - _pumpStartTime) / 1000;
-      if (elapsed >= _pumpDuration) {
-        // Auto stop
-        digitalWrite(RELAY_PIN, HIGH);  // OFF
-        _pumpRunning = false;
-        Serial.println("[PUMP] Auto-stopped");
-        publishStatus();
-      }
+  // Auto-stop when duration expires
+  if (_pumpRunning && _pumpDuration > 0) {
+    uint32_t elapsed = (millis() - _pumpStartTime) / 1000;
+    if (elapsed >= _pumpDuration) {
+      digitalWrite(RELAY_PIN, HIGH);
+      _pumpRunning = false;
+      Serial.println("[PUMP] Auto-stopped");
+      publishStatus();
     }
   }
-}
 
-// WiFi setup with retry
-void setupWiFi() {
-  Serial.printf("[WIFI] Connecting to %s\n", WIFI_SSID);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  uint8_t attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\n[WIFI] Connected: %s\n", WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("\n[WIFI] Failed, retrying in loop...");
-  }
-}
-
-// MQTT subscribe to command topic
-void setupMQTT() {
-  if (_mqtt) {
-    char topic[64];
-    snprintf(topic, sizeof(topic), "%s/%s/pump/command", TOPIC_BASE, _mqtt->getDeviceCode());
-
-    // Subscribe to device-specific command topic AND wildcard for updates
-    _mqtt->subscribe("smartgarden/+/pump/command", QOS_COMMAND);
-
-    Serial.printf("[MQTT] Subscribed to: %s\n", topic);
-  }
-}
-
-// Handle incoming MQTT message
-void callback(char* topic, uint8_t* payload, unsigned int length) {
-  // Null-terminate the payload
-  payload[length] = '\0';
-
-  Serial.printf("[MQTT] Received on %s: %s\n", topic, (char*)payload);
-
-  // Parse JSON (simplified - use ArduinoJson in production)
-  // Expected: {"action": "start"|"stop", "duration": 120, "cmd_id": "abc123"}
-
-  if (strstr((char*)payload, "\"action\":\"start\"") != nullptr) {
-    // Parse duration
-    char* durPtr = strstr((char*)payload, "\"duration\":");
-    if (durPtr) {
-      _pumpDuration = atoi(durPtr + 10);
-    }
-
-    // Extract cmd_id
-    char* cmdIdPtr = strstr((char*)payload, "\"cmd_id\":\"");
-    if (cmdIdPtr) {
-      char* end = strchr(cmdIdPtr + 9, '"');
-      if (end) *end = '\0';
-      strncpy(_currentCmdId, cmdIdPtr + 9, sizeof(_currentCmdId) - 1);
-    }
-
-    // Start pump
-    digitalWrite(RELAY_PIN, LOW);  // ON (active LOW)
-    _pumpRunning = true;
-    _pumpStartTime = millis();
-
-    Serial.printf("[PUMP] Started for %us\n", _pumpDuration);
+  static uint32_t lastStatus = 0;
+  uint32_t now = millis();
+  if (now - lastStatus > STATUS_PUBLISH_INTERVAL_MS) {
     publishStatus();
-  }
-  else if (strstr((char*)payload, "\"action\":\"stop\"") != nullptr) {
-    digitalWrite(RELAY_PIN, HIGH);  // OFF
-    _pumpRunning = false;
-    Serial.println("[PUMP] Stopped");
-    publishStatus();
+    lastStatus = now;
   }
 }
 
-// Publish pump status to broker
+// ── Status ─────────────────────────────────────────────────────────────────────
 void publishStatus() {
   if (!_mqtt || !_mqtt->isConnected()) return;
 
-  char topic[64];
-  char payload[256];
-
-  snprintf(topic, sizeof(topic), "%s/%s/pump/status", TOPIC_BASE, _mqtt->getDeviceCode());
+  char topic[64], payload[256];
+  snprintf(topic, sizeof(topic), TOPIC_PUMP_STATUS, DEVICE_CODE);
 
   uint32_t remaining = 0;
   if (_pumpRunning && _pumpDuration > 0) {
-    remaining = _pumpDuration - ((millis() - _pumpStartTime) / 1000);
+    uint32_t elapsed = (millis() - _pumpStartTime) / 1000;
+    remaining = _pumpDuration - min(elapsed, _pumpDuration);
   }
 
   snprintf(payload, sizeof(payload),
     "{\"running\":%s,\"remaining\":%u,\"cmd_id\":\"%s\"}",
     _pumpRunning ? "true" : "false",
     remaining,
-    _currentCmdId);
+    _currentCmdId[0] ? _currentCmdId : "");
 
-  _mqtt->publish(topic, payload, true);  // Retained
+  _mqtt->publish(topic, payload, true);  // retained
+  Serial.printf("[MQTT] Status: %s\n", payload);
+}
 
-  // Also send ACK if we have a cmd_id
-  if (_currentCmdId[0]) {
-    snprintf(topic, sizeof(topic), "%s/%s/pump/ack", TOPIC_BASE, _mqtt->getDeviceCode());
-    snprintf(payload, sizeof(payload),
-      "{\"cmd_id\":\"%s\",\"accepted\":true}", _currentCmdId);
-    _mqtt->publish(topic, payload, false);
-  }
+void sendAck(const char* cmdId) {
+  if (!cmdId[0]) return;
+
+  char topic[64], payload[256];
+  snprintf(topic, sizeof(topic), TOPIC_PUMP_ACK, DEVICE_CODE);
+  snprintf(payload, sizeof(payload),
+    "{\"cmd_id\":\"%s\",\"accepted\":true}", cmdId);
+
+  _mqtt->publish(topic, payload, (uint8_t)QOS_COMMAND);
+  Serial.printf("[MQTT] ACK sent: %s\n", payload);
 }

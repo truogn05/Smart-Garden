@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { broadcast, addClient, removeClient } from './sse.js';
 import { requireAuth } from './middleware/auth.js';
 import { startMqttBridge } from './mqtt-bridge.js';
@@ -13,7 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.DASHBOARD_ORIGIN || 'https://*.vercel.app'
+    : 'http://localhost:5173',
+  credentials: true,
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 // Health check (no auth)
@@ -27,9 +34,8 @@ app.use('/api/sensors', sensorRoutes);
 app.use('/api/pump', pumpRoutes);
 app.use('/api/devices', deviceRoutes);
 
-// SSE endpoint (JWT required via ?token= query param for EventSource compatibility)
+// SSE endpoint (JWT via httpOnly cookie — EventSource auto-sends cookies with credentials: true)
 app.get('/api/events', (req, res) => {
-  // EventSource doesn't support custom headers, so accept token via query param
   if (!requireAuth(req, res)) return;
 
   res.setHeader('Content-Type', 'text/event-stream');

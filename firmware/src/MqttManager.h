@@ -1,51 +1,41 @@
+#ifndef MQTT_MANAGER_H
+#define MQTT_MANAGER_H
+
 #include <Arduino.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
-#include <WiFiClient.h>
+#include <functional>
 #include "Config.h"
+
+#undef MQTT_CALLBACK_SIGNATURE
+#define MQTT_CALLBACK_SIGNATURE std::function<void(char*, uint8_t*, unsigned int)>
 
 class MqttManager {
 public:
-  MqttManager(Client& client, const char* deviceCode);
+  MqttManager(const char* deviceCode);
 
-  // Connect to MQTT broker with exponential backoff
   bool connect();
   void disconnect();
-
-  // Reconnection with exponential backoff (no restart!)
   void reconnect();
-
-  // Publish a message
   bool publish(const char* topic, const char* payload, bool retained = false);
-
-  // Subscribe to a topic
+  bool publish(const char* topic, const char* payload, uint8_t qos, bool retained = false);
   bool subscribe(const char* topic, uint8_t qos = 0);
-
-  // Process MQTT loop
   void loop();
-
-  // Check if connected
-  bool isConnected() const { return _client.connected(); }
-
-  // Get the device code
+  bool isConnected() { return _client.connected(); }
   const char* getDeviceCode() const { return _deviceCode; }
-
-  // Set callback for incoming messages
   void setCallback(MQTT_CALLBACK_SIGNATURE);
-
-  // Set last will and testament
-  void setLWT(const char* topic, const char* payload);
-
-  // Get client for external use
   PubSubClient& getClient() { return _client; }
 
 private:
+  // Use WiFiClientSecure for TLS (HiveMQ Cloud), WiFiClient for plain TCP (local Mosquitto)
+#ifndef MQTT_USE_TLS
+  WiFiClient _wifiClient;
+#else
+  WiFiClientSecure _wifiClient;
+#endif
   PubSubClient _client;
   char _deviceCode[32];
   uint32_t _reconnectInterval;
-  bool _shouldReconnect;
-
-  // Parse device code from topic
-  static void extractDeviceCode(const char* topic, char* dest, size_t destSize);
 };
 
 #endif // MQTT_MANAGER_H
