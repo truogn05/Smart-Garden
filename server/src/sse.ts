@@ -23,6 +23,20 @@ setInterval(() => {
   }
 }, SWEEP_MS);
 
+// Heartbeat: keeps proxies/alb's TCP alive, prevents browser idle timeout
+setInterval(() => {
+  for (const [res, lastSeen] of clients) {
+    if (!res.writableEnded) {
+      try {
+        res.write(': heartbeat\n\n');
+        clients.set(res, Date.now());
+      } catch {
+        clients.delete(res);
+      }
+    }
+  }
+}, HEARTBEAT_MS);
+
 export function addClient(res: Response): void {
   clients.set(res, Date.now());
 }

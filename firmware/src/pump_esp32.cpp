@@ -7,7 +7,7 @@
 #include "EspNowManager.h"
 
 // ── Hardware ───────────────────────────────────────────────────────────────────
-#define RELAY_PIN 26
+// RELAY_PIN defined in Config.h
 
 // ── Globals ────────────────────────────────────────────────────────────────────
 WifiProvisioner _wifi;

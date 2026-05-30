@@ -9,6 +9,14 @@ const router = Router();
 // In-memory reset tokens (device_code → { token, expiresAt })
 const resetTokens = new Map<string, { token: string; expiresAt: number }>();
 
+// Sweep expired tokens every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, entry] of resetTokens) {
+    if (now > entry.expiresAt) resetTokens.delete(code);
+  }
+}, 60_000);
+
 router.get('/:code/reset/init', async (req: Request, res: Response) => {
   const { code } = req.params as { code?: string };
   if (!code) {

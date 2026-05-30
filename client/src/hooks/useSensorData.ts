@@ -14,9 +14,18 @@ export function useSensorData() {
     const cleanup = createSSEConnection(
       (data) => {
         if ('temp' in data && 'humidity' in data) {
+          const incoming = data as SensorData;
           setState(s => ({
             ...s,
-            sensor: data as SensorData,
+            sensor: {
+              device_code: incoming.device_code,
+              ts: incoming.ts,
+              temp: incoming.temp,
+              humidity: incoming.humidity,
+              rain: incoming.rain,
+              // weather event sends soil_moisture=0 as sentinel; soil events carry real values
+              soil_moisture: incoming.soil_moisture || (s.sensor?.soil_moisture ?? 0),
+            },
             lastUpdate: Date.now(),
           }));
         } else if ('hours' in data) {

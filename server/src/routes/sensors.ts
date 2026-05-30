@@ -21,7 +21,7 @@ router.get('/latest', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch sensor data' });
     return;
   }
-  res.json(data || {});
+  res.json(data || { temp: null, humidity: null, soil_moisture: null, rain: null, device_code: device || 'SENSOR_001' });
 });
 
 router.get('/history', async (req: Request, res: Response) => {
@@ -61,7 +61,11 @@ router.get('/dryout', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch dryout prediction' });
     return;
   }
-  res.json(data || { hours: null, confidence: null });
+  if (!data) {
+    res.status(404).json({ hours: null, confidence: null });
+    return;
+  }
+  res.json(data);
 });
 
 export default router;

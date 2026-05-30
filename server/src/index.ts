@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.DASHBOARD_ORIGIN || 'https://*.vercel.app'
+    ? process.env.DASHBOARD_ORIGIN  // must be exact URL, e.g. https://my-app.vercel.app
     : 'http://localhost:5173',
   credentials: true,
 }));

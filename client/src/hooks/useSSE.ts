@@ -61,6 +61,7 @@ export function createSSEConnection(onMessage: MessageHandler, onConnectionChang
 
     es.addEventListener('sensor:weather', (e) => {
       const d = JSON.parse(e.data);
+      // soil_moisture=0 acts as sentinel; useSensorData only updates it from soil events
       onMessage({ device_code: d.device_code, temp: d.temp, humidity: d.humidity, rain: d.rain, soil_moisture: 0, ts: d.ts });
     });
 
