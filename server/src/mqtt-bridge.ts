@@ -1,17 +1,33 @@
 import mqtt from 'mqtt';
-import { supabase } from './db.js';
+import { query } from './db.js';
 
 type BroadcastFn = (event: string, data: unknown) => void;
 
 let broadcast: BroadcastFn = () => {};
 let mqttClient: mqtt.MqttClient | null = null;
 
-const HIVEMQ_HOST = process.env.HIVEMQ_HOST!;
-const HIVEMQ_PORT = parseInt(process.env.HIVEMQ_PORT || '8883', 10);
-const HIVEMQ_USERNAME = process.env.HIVEMQ_USERNAME!;
-const HIVEMQ_PASSWORD = process.env.HIVEMQ_PASSWORD!;
+const isProd = process.env.NODE_ENV === 'production';
 
-const MQTT_URL = `mqtts://${HIVEMQ_HOST}:${HIVEMQ_PORT}`;
+/**
+ * Resolve MQTT broker URL and options based on environment.
+ * Dev: local Mosquitto on port 1883 (TCP, no auth).
+ * Prod: HiveMQ Cloud over TLS with credentials.
+ */
+function getMqttConfig(): { url: string; opts: mqtt.IClientOptions } {
+  if (isProd) {
+    return {
+      url: `mqtts://${process.env.HIVEMQ_HOST}:${process.env.HIVEMQ_PORT || 8883}`,
+      opts: {
+        username: process.env.HIVEMQ_USERNAME,
+        password: process.env.HIVEMQ_PASSWORD,
+      },
+    };
+  }
+  return {
+    url: process.env.MQTT_URL || 'mqtt://localhost:1883',
+    opts: {},
+  };
+}
 
 /**
  * Start the MQTT bridge. Called after server is listening.
@@ -20,18 +36,22 @@ const MQTT_URL = `mqtts://${HIVEMQ_HOST}:${HIVEMQ_PORT}`;
 export function startMqttBridge(broadcastFn: BroadcastFn): void {
   broadcast = broadcastFn;
 
-  console.log(`[MQTT] Connecting to ${MQTT_URL}...`);
+  const { url, opts } = getMqttConfig();
+  const brokerLabel = isProd
+    ? `HiveMQ Cloud (${process.env.HIVEMQ_HOST})`
+    : url;
 
-  mqttClient = mqtt.connect(MQTT_URL, {
-    username: HIVEMQ_USERNAME,
-    password: HIVEMQ_PASSWORD,
+  console.log(`[MQTT] Connecting to ${brokerLabel}...`);
+
+  mqttClient = mqtt.connect(url, {
+    ...opts,
     clientId: `smartgarden-server-${Date.now()}`,
     reconnectPeriod: 5000,
     connectTimeout: 30_000,
   });
 
   mqttClient.on('connect', () => {
-    console.log('[MQTT] Connected to HiveMQ Cloud');
+    console.log(`[MQTT] Connected to ${brokerLabel}`);
     mqttClient!.subscribe('smartgarden/#', { qos: 0 }, (err) => {
       if (err) {
         console.error('[MQTT] Subscribe error:', err);
@@ -95,32 +115,26 @@ async function handleSensorMessage(
   data: Record<string, unknown>
 ): Promise<void> {
   if (type === 'weather') {
-    const { error } = await supabase.from('sensor_data').insert({
-      device_code: deviceCode,
-      temp: data.temp,
-      humidity: data.humidity,
-      rain_intensity: data.rain ?? 0,
-      timestamp: data.ts,
-    });
-
-    if (error) {
-      console.error('[MQTT] sensor_data insert error:', error);
-    } else {
+    try {
+      await query(
+        'INSERT INTO sensor_data (device_code, temp, humidity, rain_intensity, timestamp) VALUES ($1, $2, $3, $4, $5)',
+        [deviceCode, data.temp, data.humidity, data.rain ?? 0, data.ts]
+      );
       broadcast('sensor:weather', { device_code: deviceCode, ...data });
+    } catch (error) {
+      console.error('[MQTT] sensor_data insert error:', error);
     }
   }
 
   if (type === 'soil') {
-    const { error } = await supabase.from('sensor_data').insert({
-      device_code: deviceCode,
-      soil_moisture: data.moisture ?? data.moisture_pct,
-      timestamp: data.ts,
-    });
-
-    if (error) {
-      console.error('[MQTT] soil_data insert error:', error);
-    } else {
+    try {
+      await query(
+        'INSERT INTO sensor_data (device_code, soil_moisture, timestamp) VALUES ($1, $2, $3)',
+        [deviceCode, data.moisture ?? data.moisture_pct, data.ts]
+      );
       broadcast('sensor:soil', { device_code: deviceCode, ...data });
+    } catch (error) {
+      console.error('[MQTT] soil_data insert error:', error);
     }
   }
 }
@@ -131,16 +145,14 @@ async function handleAiMessage(
   data: Record<string, unknown>
 ): Promise<void> {
   if (type === 'dryout') {
-    const { error } = await supabase.from('ai_predictions').insert({
-      device_code: deviceCode,
-      predicted_hours: data.hours,
-      confidence: data.confidence,
-    });
-
-    if (error) {
-      console.error('[MQTT] ai_predictions insert error:', error);
-    } else {
+    try {
+      await query(
+        'INSERT INTO ai_predictions (device_code, predicted_hours, confidence) VALUES ($1, $2, $3)',
+        [deviceCode, data.hours, data.confidence]
+      );
       broadcast('ai:dryout', { device_code: deviceCode, ...data });
+    } catch (error) {
+      console.error('[MQTT] ai_predictions insert error:', error);
     }
   }
 }
@@ -151,17 +163,14 @@ async function handlePumpMessage(
   data: Record<string, unknown>
 ): Promise<void> {
   if (type === 'status') {
-    const { error } = await supabase.from('pump_status').insert({
-      device_code: deviceCode,
-      running: data.running,
-      remaining_sec: data.remaining,
-      timestamp: data.ts,
-    });
-
-    if (error) {
-      console.error('[MQTT] pump_status insert error:', error);
-    } else {
+    try {
+      await query(
+        'INSERT INTO pump_status (device_code, running, remaining_sec, timestamp) VALUES ($1, $2, $3, $4)',
+        [deviceCode, data.running, data.remaining, data.ts]
+      );
       broadcast('pump:status', { device_code: deviceCode, ...data });
+    } catch (error) {
+      console.error('[MQTT] pump_status insert error:', error);
     }
   }
 
@@ -177,15 +186,12 @@ async function handleDeviceMessage(
   data: Record<string, unknown>
 ): Promise<void> {
   if (type === 'heartbeat') {
-    const { error } = await supabase
-      .from('devices')
-      .update({
-        last_seen: new Date().toISOString(),
-        is_active: true,
-      })
-      .eq('device_code', deviceCode);
-
-    if (error) {
+    try {
+      await query(
+        'UPDATE devices SET last_seen = NOW(), is_active = true WHERE device_code = $1',
+        [deviceCode]
+      );
+    } catch (error) {
       console.error('[MQTT] heartbeat update error:', error);
     }
   }

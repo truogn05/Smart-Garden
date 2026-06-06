@@ -61,3 +61,5 @@ yarn-error.log*
 /.claude
 CLAUDE.md
 PLAN.md
+.gstack/
+DESIGN.md

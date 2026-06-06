@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '../db.js';
+import { query } from '../db.js';
 import { publishMqtt } from '../mqtt-bridge.js';
 import { requireAuth } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/requireUser.js';
@@ -17,12 +17,10 @@ router.post('/command', async (req: AuthRequest, res: Response) => {
   };
   const cmd_id = req.body.cmd_id || uuidv4();
 
-  await supabase.from('pump_events').insert({
-    device_code,
-    action: 'start',
-    duration,
-    cmd_id,
-  });
+  await query(
+    'INSERT INTO pump_events (device_code, action, duration, cmd_id) VALUES ($1, $2, $3, $4)',
+    [device_code, 'start', duration, cmd_id]
+  );
 
   const topic = `smartgarden/${device_code}/pump/command`;
   const payload = JSON.stringify({ action: 'start', duration, cmd_id });
@@ -39,20 +37,17 @@ router.post('/command', async (req: AuthRequest, res: Response) => {
 router.get('/status', async (req: Request, res: Response) => {
   const { device = 'PUMP_001' } = req.query as { device?: string };
 
-  const { data, error } = await supabase
-    .from('pump_status')
-    .select('*')
-    .eq('device_code', device)
-    .order('recorded_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const result = await query(
+      'SELECT * FROM pump_status WHERE device_code = $1 ORDER BY recorded_at DESC LIMIT 1',
+      [device]
+    );
+    const data = result.rows[0] || null;
+    res.json(data || { running: false, remaining_sec: 0 });
+  } catch (error) {
     console.error('[Pump] getStatus error:', error);
     res.status(500).json({ error: 'Failed to fetch pump status' });
-    return;
   }
-  res.json(data || { running: false, remaining_sec: 0 });
 });
 
 export default router;

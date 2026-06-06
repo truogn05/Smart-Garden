@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { supabase } from '../db.js';
-import { signToken, requireAuth, type JwtPayload } from '../middleware/auth.js';
+import { query } from '../db.js';
+import { signToken, requireAuth } from '../middleware/auth.js';
 import type { AuthRequest } from '../middleware/requireUser.js';
 
 const router = Router();
@@ -24,37 +24,37 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  const { data: existing } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle();
-
-  if (existing) {
+  const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.rows.length > 0) {
     res.status(409).json({ error: 'Email already registered' });
     return;
   }
 
   const password_hash = await bcrypt.hash(password, 10);
-  const { data: user, error } = await supabase
-    .from('users')
-    .insert({ email, password_hash })
-    .select('id, email')
-    .single();
+  const result = await query(
+    'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+    [email, password_hash]
+  );
 
-  if (error || !user) {
-    console.error('[Auth] Registration error:', error);
+  const user = result.rows[0];
+  if (!user) {
+    console.error('[Auth] Registration error: no user returned');
     res.status(500).json({ error: 'Failed to create user' });
     return;
   }
 
-  const payload: JwtPayload = { userId: user.id, email: user.email };
-  const token = signToken(payload);
+  const token = signToken({ userId: user.id, email: user.email });
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  res.cookie('logged_in', 'true', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   res.status(201).json({ user: { id: user.id, email: user.email } });
 });
@@ -67,13 +67,13 @@ router.post('/login', async (req: Request, res: Response) => {
     return;
   }
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('id, email, password_hash')
-    .eq('email', email)
-    .maybeSingle();
+  const result = await query(
+    'SELECT id, email, password_hash FROM users WHERE email = $1',
+    [email]
+  );
 
-  if (error || !user) {
+  const user = result.rows[0];
+  if (!user) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
   }
@@ -84,13 +84,18 @@ router.post('/login', async (req: Request, res: Response) => {
     return;
   }
 
-  const payload: JwtPayload = { userId: user.id, email: user.email };
-  const token = signToken(payload);
+  const token = signToken({ userId: user.id, email: user.email });
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+  res.cookie('logged_in', 'true', {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   res.json({ user: { id: user.id, email: user.email } });
 });

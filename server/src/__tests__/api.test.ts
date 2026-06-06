@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../index.js';
-import { supabase } from '../db.js';
+import { query } from '../db.js';
 import { signToken } from '../middleware/auth.js';
 
 const TEST_EMAIL = 'test@smartgarden.local';
@@ -13,19 +13,19 @@ describe('Auth endpoints', () => {
 
   afterAll(async () => {
     // Clean up test user
-    await supabase.from('users').delete().eq('email', TEST_EMAIL);
+    await query('DELETE FROM users WHERE email = $1', [TEST_EMAIL]);
   });
 
   describe('POST /api/auth/register', () => {
-    it('registers a new user and returns JWT', async () => {
+    it('registers a new user and returns user data + httpOnly cookie', async () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('jwt');
       expect(res.body).toHaveProperty('user');
       expect(res.body.user.email).toBe(TEST_EMAIL);
+      expect(res.headers['set-cookie']).toBeDefined();
       testUserId = res.body.user.id;
     });
 
@@ -66,14 +66,14 @@ describe('Auth endpoints', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    it('logs in with correct credentials and returns JWT', async () => {
+    it('logs in with correct credentials and returns httpOnly cookie', async () => {
       const res = await request(app)
         .post('/api/auth/login')
         .send({ email: TEST_EMAIL, password: TEST_PASSWORD });
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('jwt');
       expect(res.body.user.email).toBe(TEST_EMAIL);
+      expect(res.headers['set-cookie']).toBeDefined();
     });
 
     it('returns 401 for wrong password', async () => {

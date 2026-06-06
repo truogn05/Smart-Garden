@@ -3,7 +3,7 @@ export const API_BASE = import.meta.env.VITE_API_URL || '';
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export function isLoggedIn(): boolean {
-  return document.cookie.split('; ').some(c => c.startsWith('jwt='));
+  return document.cookie.split('; ').some(c => c.startsWith('logged_in='));
 }
 
 export async function login(email: string, password: string) {

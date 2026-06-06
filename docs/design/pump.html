@@ -1,0 +1,389 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&amp;family=Geist:wght@300;400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#92b88a",
+                    "on-secondary-container": "#773318",
+                    "tertiary": "#113211",
+                    "primary-fixed-dim": "#b0cdbb",
+                    "surface-container-low": "#f6f3ed",
+                    "surface": "#fbf9f3",
+                    "on-secondary-fixed-variant": "#763217",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#98b5a3",
+                    "primary-container": "#2d4739",
+                    "tertiary-fixed-dim": "#aad1a1",
+                    "primary": "#173124",
+                    "on-primary-fixed-variant": "#324c3e",
+                    "surface-variant": "#e4e2dc",
+                    "secondary-fixed-dim": "#ffb59b",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#1b1c18",
+                    "on-tertiary-fixed": "#012103",
+                    "on-primary-fixed": "#062014",
+                    "inverse-on-surface": "#f3f1eb",
+                    "on-background": "#1b1c18",
+                    "surface-container": "#f0eee8",
+                    "surface-container-highest": "#e4e2dc",
+                    "on-error-container": "#93000a",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed": "#380d00",
+                    "inverse-primary": "#b0cdbb",
+                    "surface-bright": "#fbf9f3",
+                    "background": "#fbf9f3",
+                    "secondary": "#94492c",
+                    "secondary-container": "#fe9d7a",
+                    "secondary-fixed": "#ffdbcf",
+                    "outline": "#727973",
+                    "inverse-surface": "#30312d",
+                    "primary-fixed": "#ccead6",
+                    "surface-dim": "#dcdad4",
+                    "surface-tint": "#496455",
+                    "on-error": "#ffffff",
+                    "on-surface-variant": "#424844",
+                    "tertiary-container": "#284925",
+                    "on-tertiary-fixed-variant": "#2d4e2a",
+                    "tertiary-fixed": "#c5edbb",
+                    "on-primary": "#ffffff",
+                    "outline-variant": "#c2c8c2",
+                    "surface-container-high": "#eae8e2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "32px",
+                    "unit": "8px",
+                    "container-padding-mobile": "24px",
+                    "section-gap": "80px",
+                    "container-padding-desktop": "48px"
+            },
+            "fontFamily": {
+                    "data-display": ["Geist"],
+                    "body-lg": ["Geist"],
+                    "headline-lg-mobile": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"],
+                    "headline-lg": ["Playfair Display"],
+                    "body-md": ["Geist"],
+                    "label-md": ["Geist"],
+                    "display-lg": ["Playfair Display"]
+            },
+            "fontSize": {
+                    "data-display": ["36px", {"lineHeight": "1.0", "letterSpacing": "-0.03em", "fontWeight": "300"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #fbf9f3; }
+        .glass-card {
+            background: rgba(251, 249, 243, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(194, 200, 194, 0.3);
+        }
+        .water-glow {
+            box-shadow: 0 0 40px rgba(110, 168, 179, 0.15);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: #e4e2dc;
+            height: 4px;
+            border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #173124;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-gutter py-4 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/30">
+<div class="font-headline-lg text-headline-lg text-primary">Verdant IoT</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-primary font-bold hover:text-secondary transition-colors duration-300" href="#">Watering</a>
+<a class="text-on-surface-variant hover:text-secondary transition-colors duration-300" href="#">Environment</a>
+<a class="text-on-surface-variant hover:text-secondary transition-colors duration-300" href="#">Insights</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-all">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-all">account_circle</button>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-0 h-full py-gutter z-40 bg-surface/80 backdrop-blur-lg w-64 shadow-[30px_0_60px_-15px_rgba(23,49,36,0.05)] border-r border-outline-variant/10">
+<div class="px-6 mb-10 mt-16">
+<h2 class="font-headline-md text-headline-md text-primary">Garden Zen</h2>
+<p class="text-on-surface-variant text-label-md">System Online</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md">Home</span>
+</div>
+<div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-label-md">Dashboard</span>
+</div>
+<div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer"><span class="material-symbols-outlined">nest_eco_leaf</span>
+<span class="font-label-md">Devices</span></div>
+<div class="bg-primary-container text-on-primary-container rounded-full px-4 py-3 flex items-center gap-3 font-semibold">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">water_drop</span>
+<span class="font-label-md">Watering</span>
+</div>
+<div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">thermostat</span>
+<span class="font-label-md">Environment</span>
+</div>
+<div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer"><span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md">Insights</span></div><div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md">Settings</span>
+</div>
+</nav>
+<div class="px-4 mt-auto space-y-2">
+<div class="pt-6 border-t border-outline-variant/20 flex flex-col gap-2">
+  <div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-2 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+    <span class="material-symbols-outlined">help</span>
+    <span class="font-label-md">Help</span>
+  </div>
+  <div class="text-on-surface-variant hover:bg-surface-container-high px-4 py-2 rounded-xl flex items-center gap-3 transition-all cursor-pointer">
+    <span class="material-symbols-outlined">logout</span>
+    <span class="font-label-md">Logout</span>
+  </div>
+</div></div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 pt-32 pb-32 px-6 md:px-12 min-h-screen">
+<div class="max-w-6xl mx-auto">
+<!-- Page Header -->
+<div class="mb-section-gap flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary mb-2">Hydration Control</h1>
+<p class="text-on-surface-variant font-body-md max-w-md">Precision management of the irrigation systems in Greenhouse Alpha. Monitor flow rates and trigger manual cycles.</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-high px-4 py-2 rounded-full flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-on-tertiary-container animate-pulse"></span>
+<span class="text-label-md text-primary">System Online</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Active Pump Display (Large) -->
+<div class="md:col-span-8 glass-card rounded-lg p-10 flex flex-col relative overflow-hidden water-glow group">
+<!-- Background Visual Pattern -->
+<div class="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-primary-container/5 blur-3xl group-hover:bg-primary-container/10 transition-colors duration-1000"></div>
+<div class="relative z-10 flex flex-col h-full">
+<div class="flex justify-between items-start mb-12">
+<div>
+<span class="text-label-md text-primary uppercase tracking-widest block mb-1">Current Status</span>
+<div class="flex items-center gap-3">
+<h2 class="font-display-lg text-display-lg text-primary">Active</h2>
+<span class="material-symbols-outlined text-on-tertiary-container text-[40px]" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-label-md text-on-surface-variant block mb-1">Flow Rate</span>
+<span class="font-data-display text-data-display text-primary">2.4 <span class="text-body-md">L/min</span></span>
+</div>
+</div>
+<!-- Fluid Visual Representation -->
+<div class="flex-1 flex items-center justify-center py-8">
+<div class="relative w-full h-48 bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30">
+<!-- Simulated Flowing Liquid -->
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary-container/20 to-primary/5"></div>
+<div class="absolute bottom-0 left-0 w-full h-1/2 bg-on-tertiary-container/20 backdrop-blur-sm flex items-center justify-center">
+<div class="flex gap-4 items-end h-full px-12 py-4 w-full">
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[60%]"></div>
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[85%]"></div>
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[40%]"></div>
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[70%]"></div>
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[90%]"></div>
+<div class="flex-1 bg-on-tertiary-container/40 rounded-t-lg h-[55%]"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-12 flex flex-col md:flex-row items-center justify-between gap-8">
+<div class="w-full md:w-1/2">
+<label class="text-label-md text-on-surface-variant mb-4 block">Set Cycle Duration (0 - 30 min)</label>
+<div class="flex items-center gap-4">
+<input class="flex-1 accent-primary" max="30" min="0" type="range" value="15">
+<span class="font-label-md text-primary min-w-[40px]">15m</span>
+</div>
+</div>
+<button class="w-full md:w-auto px-12 py-4 bg-primary text-on-primary rounded-full font-label-md flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/10">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                                Manual Trigger
+                            </button>
+</div>
+</div>
+</div>
+<!-- Secondary Control / History (Right Column) -->
+<div class="md:col-span-4 space-y-8">
+<!-- Sensor Summary Card -->
+<div class="glass-card rounded-lg p-6 flex items-center justify-between">
+<div>
+<p class="text-label-md text-on-surface-variant">Avg Soil Moisture</p>
+<p class="font-data-display text-[28px] text-primary">22%</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-error-container/30 flex items-center justify-center text-error">
+<span class="material-symbols-outlined">warning</span>
+</div>
+</div>
+<!-- Activation History -->
+<div class="glass-card rounded-lg p-8 h-full flex flex-col">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-headline-md text-primary">History</h3>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<div class="flex-1 space-y-8 relative">
+<!-- Timeline Line -->
+<div class="absolute left-[11px] top-2 bottom-2 w-[1px] bg-outline-variant/50"></div>
+<!-- Timeline Item 1 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<p class="text-label-md text-primary font-semibold">Manual Trigger (User)</p>
+<p class="text-body-md text-on-surface-variant mt-1">Started 2 mins ago • 15m duration</p>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+</div>
+<p class="text-label-md text-primary font-semibold">AI Recommended (Soil &lt; 25%)</p>
+<p class="text-body-md text-on-surface-variant mt-1">Today 06:45 AM • 12m duration</p>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+</div>
+<p class="text-label-md text-primary font-semibold">Scheduled (Daily Routine)</p>
+<p class="text-body-md text-on-surface-variant mt-1">Yesterday 08:00 PM • 10m duration</p>
+</div>
+<!-- Timeline Item 4 -->
+<div class="relative pl-10 opacity-60">
+<div class="absolute left-0 top-1 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center z-10">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+</div>
+<p class="text-label-md text-primary font-semibold">Scheduled (Daily Routine)</p>
+<p class="text-body-md text-on-surface-variant mt-1">Yesterday 08:00 AM • 10m duration</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Environmental Insights (Wide) -->
+<div class="md:col-span-12 glass-card rounded-lg p-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+<div class="flex flex-col gap-2 border-r border-outline-variant/20 pr-8">
+<span class="text-label-md text-on-surface-variant">Humidity</span>
+<div class="flex items-end gap-2">
+<span class="font-data-display text-data-display text-primary">64%</span>
+<span class="text-on-tertiary-container mb-2 material-symbols-outlined text-[18px]">trending_up</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 border-r border-outline-variant/20 pr-8">
+<span class="text-label-md text-on-surface-variant">Temp</span>
+<div class="flex items-end gap-2">
+<span class="font-data-display text-data-display text-primary">24°C</span>
+<span class="text-secondary mb-2 material-symbols-outlined text-[18px]">horizontal_rule</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 border-r border-outline-variant/20 pr-8">
+<span class="text-label-md text-on-surface-variant">PH Level</span>
+<div class="flex items-end gap-2">
+<span class="font-data-display text-data-display text-primary">6.8</span>
+<span class="text-on-tertiary-container mb-2 material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<span class="text-label-md text-on-surface-variant">Tank Level</span>
+<div class="flex items-end gap-2">
+<span class="font-data-display text-data-display text-primary">82%</span>
+<div class="w-20 h-2 bg-surface-container rounded-full mb-3 overflow-hidden">
+<div class="bg-primary h-full w-[82%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Image/Mood Section -->
+<section class="mt-section-gap">
+<div class="relative w-full h-80 rounded-xl overflow-hidden group">
+<img alt="Greenhouse details" class="w-full h-full object-cover grayscale-[0.2] group-hover:scale-105 transition-transform duration-1000" data-alt="A serene close-up photograph of vibrant green leaves with delicate water droplets resting on their surface, illuminated by the soft, diffused morning light of a modern greenhouse. The color palette is a harmonious blend of deep forest greens, soft teals, and clay-colored earth. The lighting is ethereal and high-key, creating a Zen-like atmosphere of stillness and precision horticulture. A blurred high-tech sensor is visible in the background, subtly indicating the IoT environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDNZbSuj4Hb4aCi9L6cfJiliBmS-Ehftv3WOHDaqyu1tEOE8hDb9EGoceURk8ClHi18EaOAiFzjqxLcNFP789QRxDoUrkj5drsQ0_cBT0Jonl66NYrAv10ZIy-fk8dPpohVXm2e1Eu_q02luhhCu2yRUfogYwFU5wIJEIs67zMK3Zb_HEvQe07YrdXv7SS_MdgKU-tT9hdHCfarL8p3ST0jgVK2kqXi-bIAJBRjfL25GyOB-m5lUISK-uZPwHpGr3G1tTdQeTT6P_H">
+<div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+<div class="absolute bottom-8 left-8 text-on-primary">
+<h3 class="font-headline-md text-headline-md">Botanical Harmony</h3>
+<p class="font-body-md opacity-90 max-w-sm">Automated systems working in sync with nature's inherent rhythms.</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-20 bg-surface/60 backdrop-blur-2xl border-t border-outline-variant/20 shadow-[0_-10px_40px_rgba(23,49,36,0.08)] rounded-t-lg">
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md-mobile text-[10px]">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-label-md-mobile text-[10px]">Devices</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl p-3 scale-[0.92]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+<span class="font-label-md-mobile text-[10px]">Water</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">auto_graph</span>
+<span class="font-label-md-mobile text-[10px]">Insights</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">menu</span>
+<span class="font-label-md-mobile text-[10px]">Menu</span>
+</div>
+</nav>
+
+
+
+
+</body></html>

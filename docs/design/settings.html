@@ -1,0 +1,471 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Garden Zen - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&amp;family=Playfair+Display:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#012103",
+                    "secondary-container": "#fe9d7a",
+                    "on-primary-fixed-variant": "#324c3e",
+                    "surface": "#fbf9f3",
+                    "on-primary-fixed": "#062014",
+                    "surface-variant": "#e4e2dc",
+                    "surface-container": "#f0eee8",
+                    "on-secondary": "#ffffff",
+                    "surface-container-high": "#eae8e2",
+                    "secondary": "#94492c",
+                    "on-primary-container": "#98b5a3",
+                    "surface-tint": "#496455",
+                    "secondary-fixed": "#ffdbcf",
+                    "inverse-primary": "#b0cdbb",
+                    "tertiary-container": "#284925",
+                    "outline": "#727973",
+                    "primary-container": "#2d4739",
+                    "primary": "#173124",
+                    "tertiary": "#113211",
+                    "on-tertiary-fixed-variant": "#2d4e2a",
+                    "on-surface": "#1b1c18",
+                    "surface-bright": "#fbf9f3",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#92b88a",
+                    "inverse-surface": "#30312d",
+                    "inverse-on-surface": "#f3f1eb",
+                    "surface-container-highest": "#e4e2dc",
+                    "tertiary-fixed-dim": "#aad1a1",
+                    "outline-variant": "#c2c8c2",
+                    "on-surface-variant": "#424844",
+                    "surface-dim": "#dcdad4",
+                    "surface-container-low": "#f6f3ed",
+                    "on-background": "#1b1c18",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#773318",
+                    "background": "#fbf9f3",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-secondary-fixed": "#380d00",
+                    "on-secondary-fixed-variant": "#763217",
+                    "tertiary-fixed": "#c5edbb",
+                    "primary-fixed": "#ccead6",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#ffb59b",
+                    "primary-fixed-dim": "#b0cdbb",
+                    "on-tertiary": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-gap": "80px",
+                    "container-padding-mobile": "24px",
+                    "unit": "8px",
+                    "gutter": "32px",
+                    "container-padding-desktop": "48px"
+            },
+            "fontFamily": {
+                    "label-md": [
+                            "Geist"
+                    ],
+                    "headline-lg": [
+                            "Playfair Display"
+                    ],
+                    "body-md": [
+                            "Geist"
+                    ],
+                    "headline-md": [
+                            "Playfair Display"
+                    ],
+                    "headline-lg-mobile": [
+                            "Playfair Display"
+                    ],
+                    "data-display": [
+                            "Geist"
+                    ],
+                    "body-lg": [
+                            "Geist"
+                    ],
+                    "display-lg": [
+                            "Playfair Display"
+                    ]
+            },
+            "fontSize": {
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "1.0",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "1.5",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "28px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-display": [
+                            "36px",
+                            {
+                                    "lineHeight": "1.0",
+                                    "letterSpacing": "-0.03em",
+                                    "fontWeight": "300"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        /* Ambient Background Pattern */
+        .zen-bg {
+            background-color: theme('colors.background');
+            background-image: radial-gradient(circle at 100% 0%, theme('colors.primary-fixed') 0%, transparent 40%),
+                              radial-gradient(circle at 0% 100%, theme('colors.surface-container-high') 0%, transparent 30%);
+            background-attachment: fixed;
+        }
+
+        /* Ambient Shadows */
+        .ambient-shadow {
+            box-shadow: 0 30px 60px rgba(23, 49, 36, 0.05);
+        }
+
+        /* Custom Scrollbar for Main Canvas */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: theme('colors.outline-variant');
+            border-radius: theme('borderRadius.full');
+        }
+        
+        /* Smooth form inputs */
+        .zen-input {
+            border: none;
+            border-bottom: 1px solid theme('colors.outline-variant');
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+        .zen-input:focus {
+            outline: none;
+            border-bottom-color: theme('colors.primary');
+            background: theme('colors.surface-container-low');
+        }
+        
+        /* Custom Toggle */
+        .zen-toggle:checked {
+            background-color: theme('colors.secondary-container');
+        }
+        .zen-toggle:checked + div {
+            transform: translateX(100%);
+            border-color: theme('colors.secondary-container');
+        }
+    </style>
+</head>
+<body class="zen-bg text-on-surface antialiased min-h-screen font-body-md text-body-md flex">
+<!-- Mobile Top App Bar (Hidden on md) -->
+<header class="md:hidden flex justify-between items-center w-full px-container-padding-mobile py-4 sticky top-0 z-50 bg-surface/60 backdrop-blur-xl dark:bg-surface-dim/60 shadow-[0_20px_40px_rgba(23,49,36,0.05)]">
+<div class="font-display-lg text-display-lg text-primary dark:text-primary-fixed">
+            Lumina Garden
+        </div>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:scale-105 transition-transform duration-300">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+</button>
+<button class="text-on-surface-variant hover:scale-105 transition-transform duration-300">
+<span class="material-symbols-outlined" data-icon="cloud_done">cloud_done</span>
+</button>
+<img alt="Gardener Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A close-up portrait of a serene woman with a natural botanical backdrop, soft natural lighting highlighting her features, representing a calm and organic lifestyle user profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDftM1zjwu05qpl8OzBLOyzo4Nh_7CAMpKUk5IWOZ4gyTW17WJGXCn6TXQMXEpuu68z1BXRQCRYpxLIFbRXaW3komrsiB7GGcZOrD8C1HL5fnyDbBYgZ7S0sgU0h4cPrfC4lXuoK-4wIWVx_akb2XoK6-9sd5-w7qzZJu9Q3rGLWAmMCPFTEqqLNzfGnj6igDSainELMD57xpcomTpwbM8q2ZnL5ShSLrGfqFM6k1vBbDLGL_ePjkodOC3Bkicze6ijEkFIMxAglwGX">
+</div>
+</header>
+<!-- Side Navigation Bar (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col h-screen w-72 fixed left-0 top-0 p-unit gap-4 bg-surface-container-low/80 backdrop-blur-2xl shadow-[30px_0_60px_rgba(23,49,36,0.03)] z-40">
+<!-- Brand Header -->
+<div class="px-6 py-8 flex flex-col gap-2">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="eco" data-weight="fill">eco</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary">Garden Zen</h1>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">System Online</span>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-2 px-4 flex-1">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="nest_eco_leaf">nest_eco_leaf</span>
+<span class="font-body-md text-body-md">Devices</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+<span class="font-body-md text-body-md">Watering</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Insights</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold scale-[0.97] transition-transform duration-200 shadow-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+<!-- CTA Button -->
+<div class="p-4 mt-auto"><div class="flex flex-col gap-4">
+    
+    <div class="flex flex-col gap-1">
+        <a href="#" class="flex items-center gap-4 px-4 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200">
+            <span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+            <span class="font-body-md text-body-md">Help</span>
+        </a>
+        <a href="#" class="flex items-center gap-4 px-4 py-2 rounded-lg text-error hover:bg-error-container/20 transition-colors duration-200">
+            <span class="material-symbols-outlined" data-icon="logout">logout</span>
+            <span class="font-body-md text-body-md">Logout</span>
+        </a>
+    </div>
+</div></div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full md:ml-72 flex flex-col pb-24 md:pb-12">
+<!-- Canvas Header -->
+<div class="w-full px-container-padding-mobile md:px-container-padding-desktop py-12 pt-8 md:pt-16">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">System Preferences</h1>
+<p class="font-body-lg text-body-lg text-outline">Manage your smart garden's connectivity and core parameters.</p>
+</div>
+<!-- Content Grid (Organic non-linear layout) -->
+<div class="px-container-padding-mobile md:px-container-padding-desktop flex flex-col gap-section-gap max-w-6xl w-full">
+<!-- Section 1: WiFi Management (Large Card) -->
+<section class="flex flex-col gap-6">
+<div class="flex items-center gap-3 border-b border-surface-variant pb-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="wifi">wifi</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-primary">Network &amp; Connectivity</h2>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Provision WiFi Card -->
+<div class="bg-surface/80 backdrop-blur-md rounded-xl p-8 ambient-shadow border border-surface-variant relative overflow-hidden">
+<!-- Decorative blur blob -->
+<div class="absolute -right-20 -top-20 w-64 h-64 bg-primary-fixed rounded-full mix-blend-multiply filter blur-3xl opacity-30 pointer-events-none"></div>
+<h3 class="font-label-md text-label-md text-primary uppercase tracking-widest mb-6">Provision WiFi</h3>
+<form class="flex flex-col gap-6 relative z-10">
+<div class="flex flex-col gap-2">
+<label class="font-body-md text-body-md text-on-surface-variant" for="ssid">Network Name (SSID)</label>
+<input class="zen-input w-full px-4 py-3 rounded-t-md font-body-md text-body-md text-on-surface" id="ssid" type="text" value="Botanical_Zen_5G">
+</div>
+<div class="flex flex-col gap-2">
+<label class="font-body-md text-body-md text-on-surface-variant" for="password">Password</label>
+<div class="relative">
+<input class="zen-input w-full px-4 py-3 rounded-t-md font-body-md text-body-md text-on-surface pr-12" id="password" type="password" value="gardenpeace123">
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<button class="mt-4 px-6 py-3 bg-primary-container text-on-primary-container rounded-full font-label-md text-label-md hover:scale-[1.02] transition-transform self-start shadow-sm" type="button">
+                                Update Credentials
+                            </button>
+</form>
+</div>
+<!-- Remote Reset & Status Card -->
+<div class="flex flex-col gap-6">
+<!-- Connection Status -->
+<div class="bg-surface-container-low rounded-xl p-6 border border-surface-variant flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Current Status</span>
+<span class="font-body-lg text-body-lg text-primary flex items-center gap-2 mt-1">
+<span class="w-3 h-3 rounded-full bg-secondary-container inline-block shadow-[0_0_8px_rgba(254,157,122,0.6)]"></span>
+                                    Connected
+                                </span>
+</div>
+<div class="text-right flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Signal Strength</span>
+<span class="font-data-display text-data-display text-primary mt-1">92%</span>
+</div>
+</div>
+<!-- Remote Reset Area -->
+<div class="bg-error-container/20 border border-error-container/50 rounded-xl p-6 flex flex-col gap-4">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-error mt-1" data-icon="warning">warning</span>
+<div>
+<h4 class="font-body-lg text-body-lg text-on-surface font-medium mb-1">Remote Device Reset</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Triggering a reset will temporarily disconnect your smart garden hub. Only use if sensors are unresponsive.</p>
+</div>
+</div>
+<button class="mt-2 px-6 py-3 bg-error text-on-error rounded-full font-label-md text-label-md hover:bg-error/90 transition-colors self-end shadow-sm" type="button">
+                                Trigger Reset
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: System Configuration (Bento Grid Style) -->
+<section class="flex flex-col gap-6">
+<div class="flex items-center gap-3 border-b border-surface-variant pb-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-primary">System Configuration</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Moisture Threshold -->
+<div class="bg-surface/80 backdrop-blur-md rounded-[24px] p-6 ambient-shadow border border-surface-variant flex flex-col justify-between min-h-[220px]">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-primary uppercase tracking-widest">Moisture Alert</span>
+<span class="material-symbols-outlined text-outline" data-icon="water_drop">water_drop</span>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-2">
+<div class="flex items-end gap-2">
+<input class="zen-input w-20 text-center font-data-display text-data-display text-primary bg-transparent pb-1 px-0" max="100" min="0" type="number" value="25">
+<span class="font-body-lg text-body-lg text-on-surface-variant pb-2">%</span>
+</div>
+<p class="font-body-md text-body-md text-outline text-sm">Warn when soil moisture drops below this value.</p>
+</div>
+</div>
+<!-- Temp Threshold -->
+<div class="bg-surface/80 backdrop-blur-md rounded-[24px] p-6 ambient-shadow border border-surface-variant flex flex-col justify-between min-h-[220px]">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-primary uppercase tracking-widest">High Temp Alert</span>
+<span class="material-symbols-outlined text-secondary-container" data-icon="thermostat">thermostat</span>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-2">
+<div class="flex items-end gap-2">
+<input class="zen-input w-20 text-center font-data-display text-data-display text-primary bg-transparent pb-1 px-0" max="50" min="-10" type="number" value="32">
+<span class="font-body-lg text-body-lg text-on-surface-variant pb-2">°C</span>
+</div>
+<p class="font-body-md text-body-md text-outline text-sm">Warn when ambient temperature exceeds this limit.</p>
+</div>
+</div>
+<!-- Flow Rate -->
+<div class="bg-surface-container-low rounded-[24px] p-6 border border-surface-variant flex flex-col justify-between min-h-[220px]">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-primary uppercase tracking-widest">Water Flow Rate</span>
+<span class="material-symbols-outlined text-outline" data-icon="waves">waves</span>
+</div>
+<div class="flex-1 flex flex-col justify-center gap-4">
+<div class="flex items-end gap-2">
+<input class="zen-input w-24 text-center font-data-display text-data-display text-primary bg-transparent pb-1 px-0" step="0.1" type="number" value="2.5">
+<span class="font-body-lg text-body-lg text-on-surface-variant pb-2">L/h</span>
+</div>
+<!-- Custom Range Slider (Styling only for visual representation) -->
+<div class="w-full h-1 bg-surface-variant rounded-full mt-2 relative">
+<div class="absolute left-0 top-0 h-full bg-primary-container rounded-full w-[45%]"></div>
+<div class="absolute left-[45%] top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md cursor-pointer hover:scale-110 transition-transform"></div>
+</div>
+</div>
+</div>
+<!-- Automation Toggle (Spans remaining space if needed) -->
+<div class="md:col-span-2 lg:col-span-3 bg-tertiary-fixed/30 backdrop-blur-md rounded-xl p-6 border border-tertiary-fixed-dim flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<h4 class="font-body-lg text-body-lg text-primary font-medium">Smart Auto-Adjustment</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Allow Lumina Garden to automatically adjust watering based on local weather forecasts.</p>
+</div>
+<!-- Toggle Switch -->
+<label class="flex items-center cursor-pointer relative">
+<input checked="" class="sr-only zen-toggle" type="checkbox">
+<div class="w-12 h-6 bg-surface-variant rounded-full transition-colors border border-outline-variant relative overflow-hidden">
+<div class="absolute inset-0 bg-primary-container opacity-0 transition-opacity peer-checked:opacity-100"></div>
+</div>
+<div class="dot absolute left-1 top-1 bg-surface w-4 h-4 rounded-full transition-transform transform translate-x-6 shadow-sm border border-outline-variant" style="transform: translateX(24px); border-color: transparent;"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Save Action Banner (Sticky bottom for long forms) -->
+<div class="sticky bottom-4 md:bottom-8 z-30 mt-8 w-full max-w-2xl mx-auto">
+<div class="bg-surface/90 backdrop-blur-xl border border-surface-variant rounded-full px-6 py-4 shadow-[0_10px_30px_rgba(23,49,36,0.1)] flex items-center justify-between">
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="info">info</span>
+                         Unsaved changes
+                     </span>
+<div class="flex gap-3">
+<button class="px-5 py-2 text-primary font-label-md text-label-md hover:bg-surface-container rounded-full transition-colors">Discard</button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded-full font-label-md text-label-md hover:scale-[1.02] transition-transform shadow-md">Apply Changes</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Micro-interaction for toggle switches
+        const toggles = document.querySelectorAll('.zen-toggle');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const dot = this.nextElementSibling.nextElementSibling;
+                if(this.checked) {
+                    dot.style.transform = 'translateX(24px)';
+                    dot.style.borderColor = 'transparent';
+                } else {
+                    dot.style.transform = 'translateX(0)';
+                    dot.style.borderColor = 'var(--tw-colors-outline-variant)';
+                }
+            });
+            // Initial state
+            const dot = toggle.nextElementSibling.nextElementSibling;
+             if(toggle.checked) {
+                dot.style.transform = 'translateX(24px)';
+                dot.style.borderColor = 'transparent';
+            }
+        });
+    </script>
+
+
+</body></html>

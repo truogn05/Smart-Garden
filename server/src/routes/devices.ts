@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import { supabase } from '../db.js';
+import { query } from '../db.js';
 import { publishMqtt } from '../mqtt-bridge.js';
 
 const router = Router();
@@ -24,13 +24,12 @@ router.get('/:code/reset/init', async (req: Request, res: Response) => {
     return;
   }
 
-  const { data: device } = await supabase
-    .from('devices')
-    .select('device_code')
-    .eq('device_code', code)
-    .maybeSingle();
+  const result = await query(
+    'SELECT device_code FROM devices WHERE device_code = $1',
+    [code]
+  );
 
-  if (!device) {
+  if (result.rows.length === 0) {
     res.status(404).json({ error: 'Device not found' });
     return;
   }
@@ -58,13 +57,12 @@ router.post('/:code/reset', async (req: Request, res: Response) => {
   }
   resetTokens.delete(code);
 
-  const { data: device } = await supabase
-    .from('devices')
-    .select('device_code')
-    .eq('device_code', code)
-    .maybeSingle();
+  const result = await query(
+    'SELECT device_code FROM devices WHERE device_code = $1',
+    [code]
+  );
 
-  if (!device) {
+  if (result.rows.length === 0) {
     res.status(404).json({ error: 'Device not found' });
     return;
   }
@@ -88,17 +86,21 @@ router.get('/:code/status', async (req: Request, res: Response) => {
     return;
   }
 
-  const { data: device } = await supabase
-    .from('devices')
-    .select('device_code, device_type, device_name, is_active, last_seen')
-    .eq('device_code', code)
-    .maybeSingle();
-
-  if (!device) {
-    res.status(404).json({ error: 'Device not found' });
-    return;
+  try {
+    const result = await query(
+      'SELECT device_code, device_type, device_name, is_active, last_seen FROM devices WHERE device_code = $1',
+      [code]
+    );
+    const device = result.rows[0] || null;
+    if (!device) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+    res.json(device);
+  } catch (error) {
+    console.error('[Devices] getStatus error:', error);
+    res.status(500).json({ error: 'Failed to fetch device status' });
   }
-  res.json(device);
 });
 
 export default router;

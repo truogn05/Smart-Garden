@@ -1,0 +1,428 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Soil &amp; Weather - Verdant IoT</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#92b88a",
+                        "on-secondary-container": "#773318",
+                        "tertiary": "#113211",
+                        "primary-fixed-dim": "#b0cdbb",
+                        "surface-container-low": "#f6f3ed",
+                        "surface": "#fbf9f3",
+                        "on-secondary-fixed-variant": "#763217",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#98b5a3",
+                        "primary-container": "#2d4739",
+                        "tertiary-fixed-dim": "#aad1a1",
+                        "primary": "#173124",
+                        "on-primary-fixed-variant": "#324c3e",
+                        "surface-variant": "#e4e2dc",
+                        "secondary-fixed-dim": "#ffb59b",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1b1c18",
+                        "on-tertiary-fixed": "#012103",
+                        "on-primary-fixed": "#062014",
+                        "inverse-on-surface": "#f3f1eb",
+                        "on-background": "#1b1c18",
+                        "surface-container": "#f0eee8",
+                        "surface-container-highest": "#e4e2dc",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#380d00",
+                        "inverse-primary": "#b0cdbb",
+                        "surface-bright": "#fbf9f3",
+                        "background": "#fbf9f3",
+                        "secondary": "#94492c",
+                        "secondary-container": "#fe9d7a",
+                        "secondary-fixed": "#ffdbcf",
+                        "outline": "#727973",
+                        "inverse-surface": "#30312d",
+                        "primary-fixed": "#ccead6",
+                        "surface-dim": "#dcdad4",
+                        "surface-tint": "#496455",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#424844",
+                        "tertiary-container": "#284925",
+                        "on-tertiary-fixed-variant": "#2d4e2a",
+                        "tertiary-fixed": "#c5edbb",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#c2c8c2",
+                        "surface-container-high": "#eae8e2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "32px",
+                        "unit": "8px",
+                        "container-padding-mobile": "24px",
+                        "section-gap": "80px",
+                        "container-padding-desktop": "48px"
+                    },
+                    "fontFamily": {
+                        "data-display": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-lg-mobile": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "headline-lg": ["Playfair Display"],
+                        "body-md": ["Geist"],
+                        "label-md": ["Geist"],
+                        "display-lg": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "data-display": ["36px", {"lineHeight": "1.0", "letterSpacing": "-0.03em", "fontWeight": "300"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(251, 249, 243, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(194, 200, 194, 0.3);
+        }
+        .clay-texture {
+            background-image: radial-gradient(circle at 2px 2px, rgba(148, 73, 44, 0.05) 1px, transparent 0);
+            background-size: 12px 12px;
+        }
+        .lush-texture {
+            background-image: radial-gradient(circle at 2px 2px, rgba(45, 71, 57, 0.05) 1px, transparent 0);
+            background-size: 16px 16px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-gutter py-4 bg-surface/60 backdrop-blur-xl border-b border-outline-variant/30">
+<div class="font-headline-lg text-headline-lg text-primary">Verdant IoT</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 text-on-surface-variant">
+<a class="text-primary font-bold hover:text-secondary transition-colors duration-300" href="#">Home</a>
+<a class="hover:text-secondary transition-colors duration-300" href="#">Devices</a>
+<a class="hover:text-secondary transition-colors duration-300" href="#">Insights</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary" data-icon="account_circle">account_circle</span>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Desktop Only) -->
+<nav class="hidden lg:flex flex-col fixed left-0 top-0 h-full py-gutter z-40 backdrop-blur-lg shadow-[30px_0_60px_-15px_rgba(23,49,36,0.05)] pt-24 w-72 bg-surface-container-low/80">
+<div class="px-6 mb-8"><div class="font-headline-md text-headline-md text-primary">Garden Zen</div><div class="font-label-md text-label-md text-on-surface-variant opacity-70">System Online</div></div>
+<div class="flex-1 flex flex-col gap-1 px-4"><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="home">home</span><span class="font-body-md text-body-md">Home</span></a><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="grid_view">grid_view</span><span class="font-body-md text-body-md">Dashboard</span></a><a class="flex items-center gap-4 bg-primary-container text-on-primary-container rounded-lg font-bold px-4 py-3 transition-all" href="#"><span class="material-symbols-outlined" data-icon="nest_eco_leaf">nest_eco_leaf</span><span class="font-body-md text-body-md">Devices</span></a><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="water_drop">water_drop</span><span class="font-body-md text-body-md">Watering</span></a><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="analytics">analytics</span><span class="font-body-md text-body-md">Insights</span></a><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="settings">settings</span><span class="font-body-md text-body-md">Settings</span></a></div>
+<div class="px-4 mt-auto"><div class="flex flex-col gap-1"><a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors duration-200 hover:bg-surface-container-high px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="help_outline">help_outline</span><span class="font-body-md text-body-md">Help Center</span></a><a class="flex items-center gap-4 text-on-surface-variant hover:text-error transition-colors duration-200 hover:bg-error-container/20 px-4 py-3 rounded-lg group" href="#"><span class="material-symbols-outlined" data-icon="logout">logout</span><span class="font-body-md text-body-md">Logout</span></a></div></div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="lg:ml-64 pt-24 px-4 md:px-container-desktop pb-32">
+<div class="max-w-7xl mx-auto">
+<!-- Page Header -->
+<header class="mb-section-gap">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-display-lg text-display-lg text-primary mb-2">Soil &amp; Weather</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                            A real-time synthesis of subterranean moisture and atmospheric conditions for your botanical ecosystem.
+                        </p>
+</div>
+<div class="flex gap-2">
+<span class="bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-full font-label-md text-label-md">ZONED: 9B</span>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed px-4 py-2 rounded-full font-label-md text-label-md">OPTIMAL GROWTH</span>
+</div>
+</div>
+</header>
+<!-- Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+<!-- Main View: Soil Moisture (Critical vs Healthy) -->
+<div class="md:col-span-8 space-y-8">
+<section class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<!-- Healthy Card -->
+<div class="glass-card lush-texture p-8 rounded-lg shadow-[0_20px_50px_rgba(23,49,36,0.04)] relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[120px]" data-icon="eco">eco</span>
+</div>
+<h3 class="font-label-md text-label-md text-primary uppercase tracking-widest mb-6">Zone A: Fern Forest</h3>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-data-display text-data-display text-primary">68%</span>
+<span class="font-label-md text-label-md text-on-primary-container">Optimal</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded-full mb-6 overflow-hidden">
+<div class="h-full bg-primary w-[68%] rounded-full shadow-[0_0_10px_rgba(23,49,36,0.3)]"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Ideal Range: 60% - 75%</p>
+</div>
+<!-- Critical Card -->
+<div class="glass-card clay-texture p-8 rounded-lg shadow-[0_20px_50px_rgba(148,73,44,0.06)] border-secondary/30 relative overflow-hidden">
+<div class="absolute top-4 right-4">
+<span class="bg-secondary text-on-secondary px-3 py-1 rounded-full text-[10px] font-bold">CRITICAL</span>
+</div>
+<h3 class="font-label-md text-label-md text-secondary uppercase tracking-widest mb-6">Zone B: Cactus Rockery</h3>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="font-data-display text-data-display text-secondary">12%</span>
+<span class="font-label-md text-label-md text-on-secondary-container">Arid</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded-full mb-6 overflow-hidden">
+<div class="h-full bg-secondary w-[12%] rounded-full shadow-[0_0_10px_rgba(148,73,44,0.4)]"></div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Ideal Range: 25% - 40%</p>
+</div>
+</section>
+<!-- Historical Charts -->
+<section class="glass-card p-8 rounded-lg shadow-[0_30px_60px_-15px_rgba(23,49,36,0.05)]">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">Environmental Stability</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Last 30 days composite analysis</p>
+</div>
+<div class="flex bg-surface-container rounded-full p-1">
+<button class="px-4 py-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">24h</button>
+<button class="px-4 py-2 font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">7d</button>
+<button class="px-4 py-2 font-label-md text-label-md bg-white text-primary rounded-full shadow-sm">30d</button>
+</div>
+</div>
+<!-- Mock Interactive Chart Visualization -->
+<div class="relative h-[320px] w-full flex items-end justify-between gap-1">
+<!-- Temperature Line (Stylized SVG background) -->
+<div class="absolute inset-0 z-0">
+<svg class="w-full h-full opacity-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+<path d="M0,80 Q25,20 50,60 T100,30" fill="none" stroke="#173124" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+<path d="M0,60 Q25,80 50,30 T100,70" fill="none" stroke="#94492c" stroke-dasharray="4 4" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+<!-- Bar Clusters -->
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-32 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-24 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 01</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-40 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-30 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 05</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-28 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-12 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 10</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-48 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-40 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 15</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-36 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-20 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 20</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-56 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-48 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 25</span>
+</div>
+<div class="flex flex-col items-center gap-2 group w-full">
+<div class="w-full bg-primary/10 h-32 rounded-t-sm group-hover:bg-primary/30 transition-colors relative">
+<div class="absolute bottom-0 left-0 right-0 bg-primary/60 h-24 rounded-t-sm"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">OCT 30</span>
+</div>
+</div>
+<div class="mt-12 flex flex-wrap gap-8 border-t border-outline-variant/30 pt-8">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant">AVG MOISTURE</div>
+<div class="font-bold text-primary">62.4%</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant">TEMP FLUCTUATION</div>
+<div class="font-bold text-primary">±4.2°C</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-outline"></div>
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant">RAIN INTENSITY</div>
+<div class="font-bold text-primary">Low</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Forecast & Status -->
+<aside class="md:col-span-4 space-y-8">
+<!-- 5-Day Forecast -->
+<section class="glass-card p-6 rounded-lg shadow-lg">
+<div class="flex items-center gap-3 mb-8">
+<span class="material-symbols-outlined text-primary" data-icon="cloud">cloud</span>
+<h2 class="font-headline-md text-headline-md text-primary">Local Forecast</h2>
+</div>
+<div class="space-y-6">
+<!-- Day 1 -->
+<div class="flex items-center justify-between">
+<div class="w-16 font-label-md text-label-md text-primary">TODAY</div>
+<span class="material-symbols-outlined text-secondary" data-icon="light_mode">light_mode</span>
+<div class="text-on-surface-variant font-label-md text-label-md">24° / 16°</div>
+<div class="w-12 text-right font-label-md text-label-md text-primary/60">0%</div>
+</div>
+<!-- Day 2 -->
+<div class="flex items-center justify-between">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant">MON</div>
+<span class="material-symbols-outlined text-outline" data-icon="partly_cloudy_day">partly_cloudy_day</span>
+<div class="text-on-surface-variant font-label-md text-label-md">22° / 15°</div>
+<div class="w-12 text-right font-label-md text-label-md text-primary/60">15%</div>
+</div>
+<!-- Day 3 -->
+<div class="flex items-center justify-between">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant">TUE</div>
+<span class="material-symbols-outlined text-primary" data-icon="rainy">rainy</span>
+<div class="text-on-surface-variant font-label-md text-label-md">19° / 12°</div>
+<div class="w-12 text-right font-label-md text-label-md text-primary font-bold">85%</div>
+</div>
+<!-- Day 4 -->
+<div class="flex items-center justify-between">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant">WED</div>
+<span class="material-symbols-outlined text-primary" data-icon="thunderstorm">thunderstorm</span>
+<div class="text-on-surface-variant font-label-md text-label-md">18° / 11°</div>
+<div class="w-12 text-right font-label-md text-label-md text-primary font-bold">90%</div>
+</div>
+<!-- Day 5 -->
+<div class="flex items-center justify-between">
+<div class="w-16 font-label-md text-label-md text-on-surface-variant">THU</div>
+<span class="material-symbols-outlined text-outline" data-icon="cloud">cloud</span>
+<div class="text-on-surface-variant font-label-md text-label-md">20° / 14°</div>
+<div class="w-12 text-right font-label-md text-label-md text-primary/60">30%</div>
+</div>
+</div>
+<div class="mt-8 bg-surface-container rounded-lg p-4 flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="info">info</span>
+<p class="text-[12px] leading-relaxed text-on-surface-variant">
+                                Heavy rain expected Tuesday. Automatic irrigation will be suspended for 48 hours to prevent root rot.
+                            </p>
+</div>
+</section>
+<!-- Sensor Map / Location -->
+<section class="glass-card overflow-hidden rounded-lg">
+<div class="h-48 relative bg-surface-variant">
+<img alt="Garden Layout Map" class="w-full h-full object-cover grayscale opacity-50" data-alt="A sophisticated architectural site plan of a modern garden with clean lines, geometric planting beds, and soft pathways. The drawing is minimalist with thin black lines on a cream parchment background, styled like a professional horticultural blueprint. Small glowing nodes indicate sensor placement throughout the lush botanical space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMoqhp1tfPQNMzsuc4_6l9F674vekG-kwrWK4MIPB5LI1tgWrGHgXbW3DjZXjSTeoWAYhDDGMfSMKF8GpCqKRBL8TSGvKHNp9z2GuxTMiw_Hd1lXbgKpng6ptEeAN3j7gEmWW9fEIDsGFnkba7NQqHBBUU_2GU82x_ll3RTq6gV4y6_TnXBGqzeOxf3udTxydePWFim1tG7TMmYVUonaIUqHptMks5boREFAIQBkI68XGg3VUeUZBtaKhonyXwtDgAnTaPV8ufN_F8">
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+<div class="absolute bottom-4 left-4">
+<div class="font-label-md text-label-md text-primary">GARDEN TOPOLOGY</div>
+<div class="font-headline-md text-headline-md text-primary">Northeast Sector</div>
+</div>
+</div>
+<div class="p-6">
+<button class="w-full py-3 rounded-full border border-primary text-primary font-label-md text-label-md hover:bg-primary hover:text-white transition-all">
+                                View Full Topology
+                            </button>
+</div>
+</section>
+</aside>
+</div>
+<!-- Bento Grid: Secondary Metrics -->
+<section class="mt-section-gap grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="glass-card p-6 rounded-lg flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-primary" data-icon="water_lux">water_lux</span>
+<span class="text-[10px] font-bold text-on-surface-variant">UV INDEX</span>
+</div>
+<div>
+<div class="font-data-display text-data-display text-primary">4.2</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Moderate</div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-lg flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-primary" data-icon="air">air</span>
+<span class="text-[10px] font-bold text-on-surface-variant">HUMIDITY</span>
+</div>
+<div>
+<div class="font-data-display text-data-display text-primary">58%</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Steady</div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-lg flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-primary" data-icon="compress">compress</span>
+<span class="text-[10px] font-bold text-on-surface-variant">PRESSURE</span>
+</div>
+<div>
+<div class="font-data-display text-data-display text-primary">1012</div>
+<div class="font-label-md text-label-md text-on-surface-variant">hPa</div>
+</div>
+</div>
+<div class="glass-card p-6 rounded-lg flex flex-col justify-between h-40">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-primary" data-icon="wb_sunny">wb_sunny</span>
+<span class="text-[10px] font-bold text-on-surface-variant">LIGHT</span>
+</div>
+<div>
+<div class="font-data-display text-data-display text-primary">12.5k</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Lux</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-20 bg-surface/60 backdrop-blur-2xl border-t border-outline-variant/20 shadow-[0_-10px_40px_rgba(23,49,36,0.08)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl p-2 px-4 scale-[0.92]" href="#">
+<span class="material-symbols-outlined" data-icon="sensors">sensors</span>
+<span class="font-label-md text-[10px]">Devices</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+<span class="font-label-md text-[10px]">Water</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#">
+<span class="material-symbols-outlined" data-icon="auto_graph">auto_graph</span>
+<span class="font-label-md text-[10px]">Insights</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2" href="#">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+<span class="font-label-md text-[10px]">Menu</span>
+</a>
+</nav>
+
+
+
+
+</body></html>

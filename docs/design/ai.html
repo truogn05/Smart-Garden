@@ -1,0 +1,444 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AI Predictions - Lumina Garden</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#284925",
+                      "surface": "#fbf9f3",
+                      "primary-fixed-dim": "#b0cdbb",
+                      "on-surface-variant": "#424844",
+                      "on-surface": "#1b1c18",
+                      "on-tertiary-container": "#92b88a",
+                      "primary-fixed": "#ccead6",
+                      "outline-variant": "#c2c8c2",
+                      "on-secondary": "#ffffff",
+                      "primary-container": "#2d4739",
+                      "on-secondary-fixed-variant": "#763217",
+                      "surface-bright": "#fbf9f3",
+                      "secondary-fixed": "#ffdbcf",
+                      "error": "#ba1a1a",
+                      "on-primary-fixed": "#062014",
+                      "on-tertiary-fixed": "#012103",
+                      "surface-container": "#f0eee8",
+                      "secondary": "#94492c",
+                      "on-secondary-container": "#773318",
+                      "outline": "#727973",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#324c3e",
+                      "tertiary-fixed-dim": "#aad1a1",
+                      "on-secondary-fixed": "#380d00",
+                      "surface-container-high": "#eae8e2",
+                      "surface-variant": "#e4e2dc",
+                      "on-primary": "#ffffff",
+                      "inverse-surface": "#30312d",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-fixed-variant": "#2d4e2a",
+                      "on-primary-container": "#98b5a3",
+                      "background": "#fbf9f3",
+                      "surface-container-low": "#f6f3ed",
+                      "on-background": "#1b1c18",
+                      "inverse-primary": "#b0cdbb",
+                      "tertiary": "#113211",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed-dim": "#ffb59b",
+                      "primary": "#173124",
+                      "surface-tint": "#496455",
+                      "secondary-container": "#fe9d7a",
+                      "surface-dim": "#dcdad4",
+                      "inverse-on-surface": "#f3f1eb",
+                      "tertiary-fixed": "#c5edbb",
+                      "surface-container-highest": "#e4e2dc"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "container-padding-desktop": "48px",
+                      "section-gap": "80px",
+                      "gutter": "32px",
+                      "container-padding-mobile": "24px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Geist"
+                      ],
+                      "display-lg": [
+                              "Playfair Display"
+                      ],
+                      "data-display": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Geist"
+                      ],
+                      "headline-md": [
+                              "Playfair Display"
+                      ],
+                      "headline-lg": [
+                              "Playfair Display"
+                      ],
+                      "headline-lg-mobile": [
+                              "Playfair Display"
+                      ],
+                      "label-md": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "data-display": [
+                              "36px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "-0.03em",
+                                      "fontWeight": "300"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 300,
+          'GRAD' 0,
+          'opsz' 24;
+        }
+        
+        .ambient-shadow {
+            box-shadow: 0 30px 60px rgba(23,49,36,0.05);
+        }
+        
+        /* Subtle natural background noise */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            opacity: 0.4;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: -1;
+            mix-blend-mode: overlay;
+        }
+      </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Desktop SideNav -->
+<nav class="hidden md:flex flex-col h-screen w-72 fixed left-0 top-0 bg-surface-container-low/80 backdrop-blur-2xl shadow-[30px_0_60px_rgba(23,49,36,0.03)] p-unit gap-4 z-40 border-r border-surface-variant/30"><div class="px-6 py-8">
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight">Garden Zen</h1>
+<div class="flex items-center gap-2 mt-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span>
+<p class="font-body-md text-body-md text-tertiary-container">System Online</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 px-4 flex-1">
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md text-body-md">Home</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">nest_eco_leaf</span>
+<span class="font-body-md text-body-md">Devices</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">water_drop</span>
+<span class="font-body-md text-body-md">Watering</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold shadow-sm scale-[0.97] transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-body-md text-body-md">Insights</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+<div class="p-4 mt-auto border-t border-surface-variant/30 flex flex-col gap-2">
+
+<div class="flex flex-col gap-1 mt-2 px-2">
+<a class="flex items-center gap-4 py-2 text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="font-body-md text-body-md">Help</span>
+</a>
+<a class="flex items-center gap-4 py-2 text-on-surface-variant hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+</div>
+</div></nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-72 flex flex-col min-h-screen">
+<!-- Mobile TopAppBar -->
+<header class="md:hidden flex justify-between items-center w-full px-container-padding-mobile py-4 sticky top-0 z-50 bg-surface/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(23,49,36,0.05)] border-b border-surface-variant/30">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Lumina Garden</h1>
+<div class="flex gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined hover:text-primary transition-colors">sensors</span>
+<span class="material-symbols-outlined hover:text-primary transition-colors">cloud_done</span>
+</div>
+</header>
+<div class="p-container-padding-mobile md:p-container-padding-desktop max-w-7xl mx-auto w-full flex flex-col gap-section-gap pt-8 md:pt-12">
+<!-- Page Header -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 mb-2">
+<span class="px-3 py-1 bg-tertiary-container/10 text-tertiary-container rounded-full font-label-md text-label-md flex items-center gap-1.5 border border-tertiary-container/20">
+<span class="material-symbols-outlined text-[16px]">psychology</span>
+                        AI Core Active
+                    </span>
+<span class="px-3 py-1 bg-surface-container text-on-surface-variant rounded-full font-label-md text-label-md border border-outline-variant/30">
+                        ESP32 Edge Model
+                    </span>
+</div>
+<h2 class="font-display-lg text-display-lg text-primary">Predictive Botany</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-2">
+                    Your garden is thinking. Real-time soil analytics processed locally to forecast the exact moment your plants need hydration.
+                </p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Hero Metric: Dry-Out Forecast -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl p-8 md:p-10 ambient-shadow border border-surface-variant/40 flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute -right-20 -top-20 w-64 h-64 bg-primary-fixed/20 rounded-full blur-3xl group-hover:bg-primary-fixed/30 transition-colors duration-700"></div>
+<div class="flex justify-between items-start relative z-10">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Dry-Out Forecast</h3>
+<p class="font-body-md text-body-md text-outline mt-1">Based on current transpiration rates</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-1.5 px-4 py-2 bg-primary-container text-on-primary-container rounded-full">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span class="font-label-md text-label-md">Confidence: 85%</span>
+</div>
+</div>
+</div>
+<div class="mt-12 mb-8 relative z-10">
+<p class="font-data-display text-[64px] md:text-[88px] leading-none text-primary tracking-tighter">
+                            4.5 <span class="text-[32px] md:text-[40px] text-primary/50 ml-2">hours</span>
+</p>
+<p class="font-headline-md text-headline-md text-secondary mt-4">until critical moisture threshold</p>
+</div>
+<!-- Subtle Sparkline background -->
+<div class="absolute bottom-0 left-0 w-full h-32 opacity-20 pointer-events-none">
+<svg class="w-full h-full text-primary-fixed stroke-current" preserveAspectRatio="none" viewBox="0 0 100 20">
+<path d="M0,10 Q10,15 20,8 T40,12 T60,5 T80,18 T100,2" fill="none" stroke-width="0.5" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+</div>
+<!-- Action Card: Watering Recommendation -->
+<div class="md:col-span-4 bg-tertiary-container text-on-tertiary-container rounded-xl p-8 flex flex-col justify-between ambient-shadow relative overflow-hidden">
+<div class="absolute right-0 bottom-0 opacity-10">
+<span class="material-symbols-outlined text-[160px]">water_drop</span>
+</div>
+<div class="relative z-10">
+<div class="w-12 h-12 bg-on-tertiary-container/20 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-surface">schedule</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-surface mb-2">Optimal Hydration</h3>
+<p class="font-body-md text-body-md opacity-90 mb-6">
+                            Watering recommended at <strong class="text-surface font-semibold">4:30 PM</strong> today to maintain ideal osmotic pressure.
+                        </p>
+</div>
+<div class="relative z-10 bg-surface/10 rounded-lg p-5 border border-surface/20 backdrop-blur-sm mt-auto">
+<div class="flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-surface">Auto-Watering</p>
+<p class="text-sm opacity-80 mt-1">Let AI handle it</p>
+</div>
+<!-- Toggle -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value="">
+<div class="w-11 h-6 bg-surface/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-surface after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary-container"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Local AI Insights -->
+<div class="md:col-span-6 bg-surface-container-low rounded-xl p-8 border border-surface-variant/50 flex flex-col gap-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary-container">memory</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Edge Intelligence</h3>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                        Running a <span class="font-semibold text-primary">28-byte Linear Regression</span> model directly on the ESP32 microcontroller. 
+                    </p>
+<div class="flex flex-col gap-4 mt-2">
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-[16px] text-primary-container">wifi_off</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface mb-1">Local Processing</h4>
+<p class="font-body-md text-body-md text-outline">No cloud dependency. Analyzes sensor data instantly on-device.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-tertiary-container/20 flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container">psychology</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface mb-1">Continuous Learning</h4>
+<p class="font-body-md text-body-md text-outline">Model weights adjust automatically after every actual watering cycle to improve accuracy.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Learning History Chart Area -->
+<div class="md:col-span-6 bg-surface-container-lowest rounded-xl p-8 border border-surface-variant/40 ambient-shadow">
+<div class="flex justify-between items-center mb-8">
+<h3 class="font-headline-md text-headline-md text-on-surface">Prediction Accuracy</h3>
+<span class="font-label-md text-label-md text-outline px-3 py-1 bg-surface-container rounded-full">Last 5 Cycles</span>
+</div>
+<!-- Abstract representation of a chart to avoid image dependency -->
+<div class="h-48 flex items-end justify-between gap-2 px-2 relative">
+<!-- Y-axis lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8">
+<div class="border-b border-surface-variant/50 w-full h-0"></div>
+<div class="border-b border-surface-variant/50 w-full h-0"></div>
+<div class="border-b border-surface-variant/50 w-full h-0"></div>
+</div>
+<!-- Bars -->
+<div class="flex flex-col items-center gap-2 relative z-10 w-1/5 group">
+<div class="w-full flex justify-center items-end h-32 gap-1">
+<div class="w-4 bg-outline-variant/50 rounded-t-sm h-[70%] transition-all group-hover:bg-outline-variant"></div>
+<div class="w-4 bg-tertiary-container rounded-t-sm h-[65%] transition-all group-hover:brightness-110"></div>
+</div>
+<span class="font-label-md text-[12px] text-outline">Mon</span>
+</div>
+<div class="flex flex-col items-center gap-2 relative z-10 w-1/5 group">
+<div class="w-full flex justify-center items-end h-32 gap-1">
+<div class="w-4 bg-outline-variant/50 rounded-t-sm h-[85%] transition-all group-hover:bg-outline-variant"></div>
+<div class="w-4 bg-tertiary-container rounded-t-sm h-[80%] transition-all group-hover:brightness-110"></div>
+</div>
+<span class="font-label-md text-[12px] text-outline">Wed</span>
+</div>
+<div class="flex flex-col items-center gap-2 relative z-10 w-1/5 group">
+<div class="w-full flex justify-center items-end h-32 gap-1">
+<div class="w-4 bg-outline-variant/50 rounded-t-sm h-[40%] transition-all group-hover:bg-outline-variant"></div>
+<div class="w-4 bg-tertiary-container rounded-t-sm h-[45%] transition-all group-hover:brightness-110"></div>
+</div>
+<span class="font-label-md text-[12px] text-outline">Fri</span>
+</div>
+<div class="flex flex-col items-center gap-2 relative z-10 w-1/5 group">
+<div class="w-full flex justify-center items-end h-32 gap-1">
+<div class="w-4 bg-outline-variant/50 rounded-t-sm h-[60%] transition-all group-hover:bg-outline-variant"></div>
+<div class="w-4 bg-tertiary-container rounded-t-sm h-[58%] transition-all group-hover:brightness-110"></div>
+</div>
+<span class="font-label-md text-[12px] text-outline">Sun</span>
+</div>
+<div class="flex flex-col items-center gap-2 relative z-10 w-1/5 group">
+<div class="w-full flex justify-center items-end h-32 gap-1">
+<div class="w-4 bg-outline-variant/50 rounded-t-sm h-[90%] transition-all group-hover:bg-outline-variant"></div>
+<div class="w-4 bg-tertiary-container rounded-t-sm h-[88%] transition-all group-hover:brightness-110"></div>
+</div>
+<span class="font-label-md text-[12px] text-primary">Tue</span>
+</div>
+</div>
+<div class="flex justify-center gap-6 mt-6">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-outline-variant/50 rounded-sm"></div>
+<span class="font-label-md text-[12px] text-outline">Predicted Hours</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 bg-tertiary-container rounded-sm"></div>
+<span class="font-label-md text-[12px] text-outline">Actual Hours</span>
+</div>
+</div>
+</div>
+</div>
+<div class="pb-24 md:pb-12"></div>
+</div>
+</main>
+<!-- Mobile Bottom Navigation (Visible only on md:hidden) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low/90 backdrop-blur-xl border-t border-surface-variant/30 z-50 px-6 py-3 pb-safe">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">nest_eco_leaf</span>
+</a>
+<a class="flex flex-col items-center gap-1 px-4 py-1 bg-primary-container text-on-primary-container rounded-full" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">settings</span>
+</a>
+</div>
+</nav>
+
+
+</body></html>
