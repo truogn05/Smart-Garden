@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { broadcast, addClient, removeClient } from './sse.js';
 import { requireAuth } from './middleware/auth.js';
 import { startMqttBridge } from './mqtt-bridge.js';
+import { query } from './db.js';
 import authRoutes from './routes/auth.js';
 import sensorRoutes from './routes/sensors.js';
 import pumpRoutes from './routes/pump.js';
@@ -49,10 +50,28 @@ app.get('/api/events', (req, res) => {
   req.on('close', () => removeClient(res));
 });
 
+async function cleanOldData() {
+  try {
+    console.log('[DB] Running database retention cleanup (older than 3 days)...');
+    const cutoff = "NOW() - INTERVAL '3 days'";
+    await query(`DELETE FROM sensor_data WHERE recorded_at < ${cutoff}`);
+    await query(`DELETE FROM pump_status WHERE recorded_at < ${cutoff}`);
+    await query(`DELETE FROM pump_events WHERE created_at < ${cutoff}`);
+    await query(`DELETE FROM ai_predictions WHERE created_at < ${cutoff}`);
+    console.log('[DB] Cleanup completed successfully.');
+  } catch (err: any) {
+    console.error('[DB] Cleanup error:', err.message);
+  }
+}
+
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[Server] SmartGarden server running on port ${PORT}`);
     startMqttBridge(broadcast);
+    
+    // Run cleanup on startup, then every hour
+    cleanOldData();
+    setInterval(cleanOldData, 60 * 60 * 1000);
   });
 }
 

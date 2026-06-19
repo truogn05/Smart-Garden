@@ -122,7 +122,7 @@ function LineChart({ history, field, color = '#94492c' }: {
 }
 
 export function DashboardPage() {
-  const { sensor, pump, dryout, connection, lastUpdate, history, historyLoading, devices } = useSensorData();
+  const { sensor, pump, dryout, connection, lastUpdate, history, historyLoading, devices, range, setRange } = useSensorData();
   const [duration, setDuration] = useState(15);
   const [wateringLoading, setWateringLoading] = useState(false);
   const [wateringError, setWateringError] = useState('');
@@ -173,8 +173,8 @@ export function DashboardPage() {
   const weatherHistory = history.filter(h => h.temp !== null);
   const soilHistory = history.filter(h => h.soil_moisture !== null);
 
-  const tempPoints = weatherHistory.map(h => h.temp).slice(-24);
-  const soilPoints = soilHistory.map(h => h.soil_moisture).slice(-24);
+  const tempPoints = weatherHistory.map(h => h.temp);
+  const soilPoints = soilHistory.map(h => h.soil_moisture);
 
   const lastUpdatedLabel = timeAgo(lastUpdate);
 
@@ -410,68 +410,121 @@ export function DashboardPage() {
         </div>
 
         {/* Historical Trends */}
-        <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Weather history */}
-          <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h4 className="font-headline-md text-primary">Weather 24h</h4>
-                <p className="font-label-md text-on-surface-variant">
-                  Nhiệt độ · {tempPoints.length} điểm dữ liệu
-                </p>
-              </div>
-              {!historyLoading && weatherHistory.length > 0 && (
-                <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
-                  {weatherHistory[weatherHistory.length - 1]?.temp?.toFixed(1)}°C hiện tại
-                </span>
-              )}
+        <div className="md:col-span-12 flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-surface-container/30 p-4 rounded-xl border border-outline-variant/20">
+            <div>
+              <h3 className="font-headline-md text-primary text-lg font-bold">Lịch sử đo đạc</h3>
+              <p className="text-xs text-on-surface-variant">Xem dữ liệu biểu đồ theo các khoảng thời gian khác nhau</p>
             </div>
-            {historyLoading ? (
-              <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
-            ) : (
-              <BarChart points={tempPoints} color="var(--md-sys-color-primary, #2d6a4f)" />
-            )}
-            <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
-              {tempPoints.length > 0 ? (
-                <>
-                  <span>{new Date(weatherHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span>Bây giờ</span>
-                </>
-              ) : (
-                <span>Chưa có dữ liệu</span>
-              )}
+            <div className="flex bg-surface-container rounded-full p-1 border border-outline-variant/30 self-start sm:self-auto">
+              <button
+                onClick={() => setRange('1h')}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  range === '1h'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-primary'
+                }`}
+              >
+                1 Giờ
+              </button>
+              <button
+                onClick={() => setRange('24h')}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  range === '24h'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-primary'
+                }`}
+              >
+                24 Giờ
+              </button>
+              <button
+                onClick={() => setRange('3d')}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  range === '3d'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:text-primary'
+                }`}
+              >
+                3 Ngày
+              </button>
             </div>
           </div>
 
-          {/* Soil Moisture history */}
-          <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h4 className="font-headline-md text-primary">Soil Moisture</h4>
-                <p className="font-label-md text-on-surface-variant">
-                  Lịch sử · {soilPoints.length} điểm dữ liệu
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Weather history */}
+            <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h4 className="font-headline-md text-primary">Nhiệt độ ({range === '1h' ? '1 Giờ' : range === '24h' ? '24 Giờ' : '3 Ngày'})</h4>
+                  <p className="font-label-md text-on-surface-variant">
+                    Nhiệt độ · {tempPoints.length} điểm dữ liệu
+                  </p>
+                </div>
+                {!historyLoading && weatherHistory.length > 0 && (
+                  <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+                    {weatherHistory[weatherHistory.length - 1]?.temp?.toFixed(1)}°C hiện tại
+                  </span>
+                )}
               </div>
-              {!historyLoading && soilHistory.length > 0 && (
-                <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
-                  {soilHistory[soilHistory.length - 1]?.soil_moisture}% hiện tại
-                </span>
-              )}
-            </div>
-            {historyLoading ? (
-              <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
-            ) : (
-              <LineChart history={soilHistory} field="soil_moisture" color="#94492c" />
-            )}
-            <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
-              {soilPoints.length > 0 ? (
-                <>
-                  <span>{new Date(soilHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span>Bây giờ</span>
-                </>
+              {historyLoading ? (
+                <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
               ) : (
-                <span>Chưa có dữ liệu</span>
+                <BarChart points={tempPoints} color="var(--md-sys-color-primary, #2d6a4f)" />
               )}
+              <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
+                {tempPoints.length > 0 ? (
+                  <>
+                    <span>
+                      {new Date(weatherHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
+                      })}
+                    </span>
+                    <span>Bây giờ</span>
+                  </>
+                ) : (
+                  <span>Chưa có dữ liệu</span>
+                )}
+              </div>
+            </div>
+
+            {/* Soil Moisture history */}
+            <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h4 className="font-headline-md text-primary">Độ ẩm đất ({range === '1h' ? '1 Giờ' : range === '24h' ? '24 Giờ' : '3 Ngày'})</h4>
+                  <p className="font-label-md text-on-surface-variant">
+                    Lịch sử · {soilPoints.length} điểm dữ liệu
+                  </p>
+                </div>
+                {!historyLoading && soilHistory.length > 0 && (
+                  <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+                    {soilHistory[soilHistory.length - 1]?.soil_moisture}% hiện tại
+                  </span>
+                )}
+              </div>
+              {historyLoading ? (
+                <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
+              ) : (
+                <LineChart history={soilHistory} field="soil_moisture" color="#94492c" />
+              )}
+              <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
+                {soilPoints.length > 0 ? (
+                  <>
+                    <span>
+                      {new Date(soilHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
+                      })}
+                    </span>
+                    <span>Bây giờ</span>
+                  </>
+                ) : (
+                  <span>Chưa có dữ liệu</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

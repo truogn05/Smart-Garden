@@ -78,8 +78,8 @@ async function fetchLatest(): Promise<{
 }
 
 /** Fetch sensor history (last N rows) from DB */
-async function fetchHistory(limit = 50): Promise<HistoryPoint[]> {
-  const res = await fetch(`${API_BASE}/api/sensors/history?limit=${limit}`, { credentials: 'include' });
+async function fetchHistory(range: '1h' | '24h' | '3d'): Promise<HistoryPoint[]> {
+  const res = await fetch(`${API_BASE}/api/sensors/history?range=${range}`, { credentials: 'include' });
   if (!res.ok) return [];
   const rows: any[] = await res.json();
   return rows
@@ -112,16 +112,16 @@ export function useSensorData() {
     devices: [],
     devicesLoading: true,
   });
+  const [range, setRange] = useState<'1h' | '24h' | '3d'>('24h');
 
-  // ── Initial fetch from DB ──────────────────────────────────────────────────
+  // ── Fetch latest sensor + devices (poll every 150s) ─────────────────────────
   useEffect(() => {
     let cancelled = false;
 
-    const loadData = async () => {
+    const loadLatest = async () => {
       try {
-        const [latest, history, devices] = await Promise.all([
+        const [latest, devices] = await Promise.all([
           fetchLatest(),
-          fetchHistory(50),
           fetchDevices()
         ]);
         if (cancelled) return;
@@ -130,30 +130,59 @@ export function useSensorData() {
           sensor: latest.sensor ?? s.sensor,
           pump: latest.pump ?? s.pump,
           dryout: latest.dryout ?? s.dryout,
-          history,
-          historyLoading: false,
           devices,
           devicesLoading: false,
           lastUpdate: latest.sensor ? latest.sensor.ts : s.lastUpdate,
         }));
       } catch (err) {
-        console.error('[useSensorData] Error loading database data:', err);
+        console.error('[useSensorData] Error loading latest:', err);
         if (!cancelled) {
-          setState(s => ({ ...s, historyLoading: false, devicesLoading: false }));
+          setState(s => ({ ...s, devicesLoading: false }));
         }
       }
     };
 
-    loadData();
+    loadLatest();
 
-    // Poll database every 150 seconds to keep dashboard fresh even if SSE is idle
-    const intervalId = setInterval(loadData, 150 * 1000);
+    const intervalId = setInterval(loadLatest, 150 * 1000);
 
     return () => {
       cancelled = true;
       clearInterval(intervalId);
     };
   }, []);
+
+  // ── Fetch history when range changes (poll every 150s to keep in sync) ──────
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      setState(s => ({ ...s, historyLoading: true }));
+      try {
+        const history = await fetchHistory(range);
+        if (cancelled) return;
+        setState(s => ({
+          ...s,
+          history,
+          historyLoading: false,
+        }));
+      } catch (err) {
+        console.error('[useSensorData] Error loading history:', err);
+        if (!cancelled) {
+          setState(s => ({ ...s, historyLoading: false }));
+        }
+      }
+    };
+
+    loadHistory();
+
+    const intervalId = setInterval(loadHistory, 150 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [range]);
 
   // ── SSE realtime updates ───────────────────────────────────────────────────
   useEffect(() => {
@@ -216,5 +245,5 @@ export function useSensorData() {
     return cleanup;
   }, []);
 
-  return state;
+  return { ...state, range, setRange };
 }

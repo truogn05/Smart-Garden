@@ -50,17 +50,94 @@ router.get('/latest', async (req: Request, res: Response) => {
 router.get('/history', async (req: Request, res: Response) => {
   if (!requireAuth(req, res)) return;
 
-  const { device, limit = '100' } = req.query as { device?: string; limit?: string };
-  const limitNum = Math.min(parseInt(limit, 10), 1000);
+  const { device, limit = '100', range } = req.query as {
+    device?: string;
+    limit?: string;
+    range?: '1h' | '24h' | '3d';
+  };
 
-  let sql = 'SELECT * FROM sensor_data';
   const params: unknown[] = [];
   if (device) {
-    sql += ' WHERE device_code = $1';
     params.push(device);
   }
-  sql += ' ORDER BY recorded_at DESC LIMIT $' + (params.length + 1);
-  params.push(limitNum);
+
+  let sql = '';
+  if (range === '1h') {
+    sql = `
+      SELECT 
+        time_bucket as recorded_at,
+        AVG(temp) as temp,
+        AVG(humidity) as humidity,
+        AVG(soil_moisture) as soil_moisture,
+        AVG(rain_intensity) as rain_intensity
+      FROM (
+        SELECT 
+          temp,
+          humidity,
+          soil_moisture,
+          rain_intensity,
+          to_timestamp(floor(extract(epoch from recorded_at) / 150) * 150) as time_bucket
+        FROM sensor_data
+        WHERE recorded_at >= NOW() - INTERVAL '1 hour'
+          ${device ? 'AND device_code = $1' : ''}
+      ) t
+      GROUP BY time_bucket
+      ORDER BY time_bucket DESC
+    `;
+  } else if (range === '24h') {
+    sql = `
+      SELECT 
+        time_bucket as recorded_at,
+        AVG(temp) as temp,
+        AVG(humidity) as humidity,
+        AVG(soil_moisture) as soil_moisture,
+        AVG(rain_intensity) as rain_intensity
+      FROM (
+        SELECT 
+          temp,
+          humidity,
+          soil_moisture,
+          rain_intensity,
+          date_trunc('hour', recorded_at) as time_bucket
+        FROM sensor_data
+        WHERE recorded_at >= NOW() - INTERVAL '24 hours'
+          ${device ? 'AND device_code = $1' : ''}
+      ) t
+      GROUP BY time_bucket
+      ORDER BY time_bucket DESC
+    `;
+  } else if (range === '3d') {
+    sql = `
+      SELECT 
+        time_bucket as recorded_at,
+        AVG(temp) as temp,
+        AVG(humidity) as humidity,
+        AVG(soil_moisture) as soil_moisture,
+        AVG(rain_intensity) as rain_intensity
+      FROM (
+        SELECT 
+          temp,
+          humidity,
+          soil_moisture,
+          rain_intensity,
+          to_timestamp(floor(extract(epoch from date_trunc('hour', recorded_at)) / (3 * 3600)) * (3 * 3600)) as time_bucket
+        FROM sensor_data
+        WHERE recorded_at >= NOW() - INTERVAL '3 days'
+          ${device ? 'AND device_code = $1' : ''}
+      ) t
+      GROUP BY time_bucket
+      ORDER BY time_bucket DESC
+    `;
+  } else {
+    // Default raw history
+    const limitNum = Math.min(parseInt(limit, 10), 1000);
+    sql = 'SELECT * FROM sensor_data';
+    if (device) {
+      sql += ' WHERE device_code = $1';
+    }
+    sql += ' ORDER BY recorded_at DESC LIMIT $' + (params.length + 1);
+    params.push(limitNum);
+  }
 
   try {
     const result = await query(sql, params);
