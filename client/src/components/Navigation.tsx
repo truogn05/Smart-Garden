@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Leaf, LayoutDashboard, Droplets, Thermometer, Cpu, Settings, HelpCircle, LogOut, Menu } from 'lucide-react';
 import { useState } from 'react';
+import { logout } from '../hooks/useAuth';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -61,7 +62,7 @@ export function SideNav() {
           <span className="font-body-md">Help</span>
         </Link>
         <button
-          onClick={() => { document.cookie = 'jwt=; Max-Age=0; path=/'; window.location.href = '/login'; }}
+          onClick={() => logout()}
           className="w-full flex items-center gap-4 px-4 py-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors"
         >
           <LogOut size={20} />

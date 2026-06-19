@@ -11,24 +11,16 @@ import { SettingsPage } from './pages/SettingsPage';
 import { AppShell } from './layouts/AppShell';
 import './index.css';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export default function App() {
   const [authed, setAuthed] = useState(isLoggedIn);
 
   useEffect(() => {
-    if (!authed) {
-      const interval = setInterval(() => {
-        if (isLoggedIn()) setAuthed(true);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [authed]);
-
-  if (!authed) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
-
-export default function App() {
-  const [authed, setAuthed] = useState(isLoggedIn);
+    // Lắng nghe sự kiện logout từ useAuth.logout() để re-render ngay lập tức
+    // mà không cần page reload
+    const handleLogout = () => setAuthed(false);
+    window.addEventListener('app:logout', handleLogout);
+    return () => window.removeEventListener('app:logout', handleLogout);
+  }, []);
 
   if (!authed) {
     return (
@@ -45,7 +37,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-        <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+        <Route element={<AppShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/devices" element={<DevicesPage />} />
           <Route path="/watering" element={<WateringPage />} />

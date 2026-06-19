@@ -17,24 +17,28 @@ router.post('/command', async (req: AuthRequest, res: Response) => {
   };
   const cmd_id = req.body.cmd_id || uuidv4();
 
-  await query(
-    'INSERT INTO pump_events (device_code, action, duration, cmd_id) VALUES ($1, $2, $3, $4)',
-    [device_code, 'start', duration, cmd_id]
-  );
-
   const topic = `smartgarden/${device_code}/pump/command`;
   const payload = JSON.stringify({ action: 'start', duration, cmd_id });
 
   try {
+    // Publish MQTT trước — chỉ lưu DB nếu command được gửi thành công
     await publishMqtt(topic, payload, { qos: 1 });
+
+    await query(
+      'INSERT INTO pump_events (device_code, action, duration, cmd_id) VALUES ($1, $2, $3, $4)',
+      [device_code, 'start', duration, cmd_id]
+    );
+
     res.json({ accepted: true, cmd_id });
   } catch (err) {
-    console.error('[Pump] sendCommand MQTT error:', err);
+    console.error('[Pump] sendCommand error:', err);
     res.status(500).json({ accepted: false, error: 'Failed to send command' });
   }
 });
 
 router.get('/status', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { device = 'PUMP_001' } = req.query as { device?: string };
 
   try {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { query } from '../db.js';
-import { handleMessage } from '../mqtt-bridge.js';
+import { handleMessage, setBroadcast } from '../mqtt-bridge.js';
 
 const broadcastCalls: Array<{ event: string; data: unknown }> = [];
 vi.stubGlobal('broadcast', (event: string, data: unknown) => {
@@ -17,6 +17,9 @@ beforeEach(() => {
   broadcastCalls.length = 0;
   // Default: successful insert
   (query as ReturnType<typeof vi.fn>).mockResolvedValue({ rows: [] });
+  setBroadcast((event, data) => {
+    broadcastCalls.push({ event, data });
+  });
 });
 
 describe('MQTT bridge message handling', () => {

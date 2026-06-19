@@ -225,3 +225,7 @@ export async function publishMqtt(
 export function isMqttConnected(): boolean {
   return mqttClient?.connected ?? false;
 }
+
+export function setBroadcast(broadcastFn: BroadcastFn): void {
+  broadcast = broadcastFn;
+}

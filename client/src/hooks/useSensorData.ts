@@ -1,33 +1,172 @@
 import { useState, useEffect } from 'react';
+import { API_BASE } from './useAuth';
 import { createSSEConnection, type SensorState, type SensorData, type DryoutData, type PumpStatus } from './useSSE';
 
+export interface HistoryPoint {
+  recorded_at: string;
+  temp: number | null;
+  humidity: number | null;
+  soil_moisture: number | null;
+  rain_intensity: number | null;
+}
+
+export interface SensorStateWithHistory extends SensorState {
+  history: HistoryPoint[];
+  historyLoading: boolean;
+}
+
+/** Fetch latest sensor + pump + dryout from DB (initial load) */
+async function fetchLatest(): Promise<{
+  sensor: SensorData | null;
+  pump: PumpStatus | null;
+  dryout: DryoutData | null;
+}> {
+  const [sensorRes, pumpRes, dryoutRes] = await Promise.all([
+    fetch(`${API_BASE}/api/sensors/latest`, { credentials: 'include' }),
+    fetch(`${API_BASE}/api/pump/status`, { credentials: 'include' }),
+    fetch(`${API_BASE}/api/sensors/dryout`, { credentials: 'include' }),
+  ]);
+
+  const sensorRaw = sensorRes.ok ? await sensorRes.json() : null;
+  const pumpRaw = pumpRes.ok ? await pumpRes.json() : null;
+  const dryoutRaw = dryoutRes.ok ? await dryoutRes.json() : null;
+
+  // Map DB column names → SensorData shape
+  const sensor: SensorData | null = sensorRaw && (sensorRaw.temp !== null || sensorRaw.soil_moisture !== null)
+    ? {
+        device_code: sensorRaw.device_code ?? 'SENSOR_001',
+        temp: Number(sensorRaw.temp ?? 0),
+        humidity: Number(sensorRaw.humidity ?? 0),
+        rain: Number(sensorRaw.rain_intensity ?? sensorRaw.rain ?? 0),
+        soil_moisture: Number(sensorRaw.soil_moisture ?? 0),
+        ts: sensorRaw.timestamp ? Number(sensorRaw.timestamp) : Date.now(),
+      }
+    : null;
+
+  const pump: PumpStatus | null = pumpRaw
+    ? {
+        device_code: pumpRaw.device_code ?? 'PUMP_001',
+        running: Boolean(pumpRaw.running),
+        remaining: Number(pumpRaw.remaining_sec ?? pumpRaw.remaining ?? 0),
+        cmd_id: pumpRaw.cmd_id ?? '',
+      }
+    : null;
+
+  const dryout: DryoutData | null =
+    dryoutRaw && dryoutRaw.predicted_hours !== null && dryoutRaw.predicted_hours !== undefined
+      ? {
+          device_code: dryoutRaw.device_code ?? 'SENSOR_001',
+          hours: Number(dryoutRaw.predicted_hours ?? dryoutRaw.hours ?? 0),
+          confidence: Number(dryoutRaw.confidence ?? 0),
+          ts: dryoutRaw.created_at ? new Date(dryoutRaw.created_at).getTime() : Date.now(),
+        }
+      : null;
+
+  return { sensor, pump, dryout };
+}
+
+/** Fetch sensor history (last N rows) from DB */
+async function fetchHistory(limit = 50): Promise<HistoryPoint[]> {
+  const res = await fetch(`${API_BASE}/api/sensors/history?limit=${limit}`, { credentials: 'include' });
+  if (!res.ok) return [];
+  const rows: any[] = await res.json();
+  return rows
+    .map(r => ({
+      recorded_at: r.recorded_at,
+      temp: r.temp !== null && r.temp !== undefined ? Number(r.temp) : null,
+      humidity: r.humidity !== null && r.humidity !== undefined ? Number(r.humidity) : null,
+      soil_moisture: r.soil_moisture !== null && r.soil_moisture !== undefined ? Number(r.soil_moisture) : null,
+      rain_intensity: r.rain_intensity !== null && r.rain_intensity !== undefined ? Number(r.rain_intensity) : null,
+    }))
+    .reverse(); // API trả về DESC, chart cần ASC
+}
+
 export function useSensorData() {
-  const [state, setState] = useState<SensorState>({
+  const [state, setState] = useState<SensorStateWithHistory>({
     sensor: null,
     dryout: null,
     pump: null,
     connection: 'connecting',
     lastUpdate: null,
+    history: [],
+    historyLoading: true,
   });
 
+  // ── Initial fetch from DB ──────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [latest, history] = await Promise.all([fetchLatest(), fetchHistory(50)]);
+        if (cancelled) return;
+        setState(s => ({
+          ...s,
+          sensor: latest.sensor ?? s.sensor,
+          pump: latest.pump ?? s.pump,
+          dryout: latest.dryout ?? s.dryout,
+          history,
+          historyLoading: false,
+          lastUpdate: latest.sensor ? Date.now() : s.lastUpdate,
+        }));
+      } catch {
+        if (!cancelled) setState(s => ({ ...s, historyLoading: false }));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── SSE realtime updates ───────────────────────────────────────────────────
   useEffect(() => {
     const cleanup = createSSEConnection(
       (data) => {
-        if ('temp' in data && 'humidity' in data) {
-          const incoming = data as SensorData;
-          setState(s => ({
-            ...s,
-            sensor: {
-              device_code: incoming.device_code,
-              ts: incoming.ts,
-              temp: incoming.temp,
-              humidity: incoming.humidity,
-              rain: incoming.rain,
-              // weather event sends soil_moisture=0 as sentinel; soil events carry real values
-              soil_moisture: incoming.soil_moisture || (s.sensor?.soil_moisture ?? 0),
-            },
-            lastUpdate: Date.now(),
-          }));
+        if (!data || typeof data !== 'object') return;
+        if ('temp' in data || 'soil_moisture' in data || 'moisture' in data) {
+          const incoming = data as any;
+          setState(s => {
+            const prev = s.sensor;
+
+            // Extract values supporting both SSE format and REST database format
+            const tempVal = incoming.temp;
+            const humVal = incoming.humidity;
+            const rainVal = incoming.rain !== undefined ? incoming.rain : incoming.rain_intensity;
+            const soilVal = incoming.soil_moisture !== undefined ? incoming.soil_moisture : incoming.moisture;
+
+            const newSensor: SensorData = {
+              device_code: incoming.device_code || prev?.device_code || 'SENSOR_001',
+              ts: incoming.ts || Date.now(),
+              temp: (tempVal !== null && tempVal !== undefined && tempVal !== 0)
+                ? Number(tempVal)
+                : (prev?.temp ?? 0),
+              humidity: (humVal !== null && humVal !== undefined && humVal !== 0)
+                ? Number(humVal)
+                : (prev?.humidity ?? 0),
+              rain: (rainVal !== null && rainVal !== undefined && rainVal !== 0)
+                ? Number(rainVal)
+                : (prev?.rain ?? 0),
+              soil_moisture: (soilVal !== null && soilVal !== undefined && soilVal !== 0)
+                ? Number(soilVal)
+                : (prev?.soil_moisture ?? 0),
+            };
+
+            // Thêm điểm mới vào history (giữ tối đa 50 điểm)
+            const newHistoryPoint: HistoryPoint = {
+              recorded_at: new Date().toISOString(),
+              temp: newSensor.temp || null,
+              humidity: newSensor.humidity || null,
+              soil_moisture: soilVal || null,
+              rain_intensity: rainVal || null,
+            };
+            const updatedHistory = [...s.history, newHistoryPoint].slice(-50);
+
+            return {
+              ...s,
+              sensor: newSensor,
+              history: updatedHistory,
+              lastUpdate: Date.now(),
+            };
+          });
         } else if ('hours' in data) {
           setState(s => ({ ...s, dryout: data as DryoutData }));
         } else if ('running' in data) {
@@ -40,4 +179,4 @@ export function useSensorData() {
   }, []);
 
   return state;
-}
+}

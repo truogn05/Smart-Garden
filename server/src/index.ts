@@ -49,10 +49,12 @@ app.get('/api/events', (req, res) => {
   req.on('close', () => removeClient(res));
 });
 
-app.listen(PORT, () => {
-  console.log(`[Server] SmartGarden server running on port ${PORT}`);
-  startMqttBridge(broadcast);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`[Server] SmartGarden server running on port ${PORT}`);
+    startMqttBridge(broadcast);
+  });
+}
 
 export default app;
 export { broadcast };

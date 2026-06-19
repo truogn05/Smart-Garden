@@ -14,11 +14,14 @@ const isProd = process.env.NODE_ENV === 'production';
  * so swapping the backend requires no route changes.
  */
 const pool = new pg.Pool(
-  isProd
+  process.env.DATABASE_URL
     ? {
-        // Supabase PostgreSQL direct connection
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false },
+        ssl:
+          process.env.DATABASE_URL.includes('localhost') ||
+          process.env.DATABASE_URL.includes('127.0.0.1')
+            ? false
+            : { rejectUnauthorized: false },
       }
     : {
         // Local PostgreSQL

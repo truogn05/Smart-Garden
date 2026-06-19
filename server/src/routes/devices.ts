@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { query } from '../db.js';
 import { publishMqtt } from '../mqtt-bridge.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -18,6 +19,8 @@ setInterval(() => {
 }, 60_000);
 
 router.get('/:code/reset/init', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { code } = req.params as { code?: string };
   if (!code) {
     res.status(400).json({ error: 'device code required' });
@@ -41,6 +44,8 @@ router.get('/:code/reset/init', async (req: Request, res: Response) => {
 });
 
 router.post('/:code/reset', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { code } = req.params as { code?: string };
   const { token } = req.body as { token?: string };
 
@@ -80,6 +85,8 @@ router.post('/:code/reset', async (req: Request, res: Response) => {
 });
 
 router.get('/:code/status', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { code } = req.params as { code?: string };
   if (!code) {
     res.status(400).json({ error: 'device code required' });

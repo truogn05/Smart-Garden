@@ -105,4 +105,15 @@ router.get('/me', (req: AuthRequest, res: Response) => {
   res.json({ user: req.user });
 });
 
+router.post('/logout', (_req: Request, res: Response) => {
+  const cookieOpts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+  };
+  res.clearCookie('jwt', cookieOpts);
+  res.clearCookie('logged_in', { ...cookieOpts, httpOnly: false });
+  res.json({ success: true });
+});
+
 export default router;

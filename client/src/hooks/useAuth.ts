@@ -34,6 +34,21 @@ export async function register(email: string, password: string) {
   return res.json();
 }
 
-export function logout() {
-  document.cookie = 'jwt=; Max-Age=0; path=/';
+/**
+ * Logout: gọi server để clear httpOnly jwt cookie, rồi xóa logged_in cookie
+ * phía client. Dispatch custom event để App.tsx có thể re-render ngay lập tức.
+ */
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch {
+    // Dù server có lỗi, vẫn xóa cookie phía client
+  }
+  // Xóa logged_in cookie phía client (không httpOnly, JS có thể xóa)
+  document.cookie = 'logged_in=; Max-Age=0; path=/';
+  // Notify App.tsx để re-render về login page
+  window.dispatchEvent(new Event('app:logout'));
 }

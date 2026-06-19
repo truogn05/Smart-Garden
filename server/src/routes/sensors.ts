@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { query } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
 router.get('/latest', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { device } = req.query as { device?: string };
 
   let sql = 'SELECT * FROM sensor_data';
@@ -26,6 +29,8 @@ router.get('/latest', async (req: Request, res: Response) => {
 });
 
 router.get('/history', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { device, limit = '100' } = req.query as { device?: string; limit?: string };
   const limitNum = Math.min(parseInt(limit, 10), 1000);
 
@@ -48,6 +53,8 @@ router.get('/history', async (req: Request, res: Response) => {
 });
 
 router.get('/dryout', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
   const { device = 'SENSOR_001' } = req.query as { device?: string };
 
   try {
@@ -57,7 +64,7 @@ router.get('/dryout', async (req: Request, res: Response) => {
     );
     const data = result.rows[0] || null;
     if (!data) {
-      res.status(404).json({ hours: null, confidence: null });
+      res.json({ hours: null, confidence: null });
       return;
     }
     res.json(data);
