@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSensorData, type HistoryPoint } from '../hooks/useSensorData';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import { DEFAULT_SENSOR_CODE, DEFAULT_PUMP_CODE, API_BASE } from '../config';
@@ -126,6 +126,15 @@ export function DashboardPage() {
   const [duration, setDuration] = useState(15);
   const [wateringLoading, setWateringLoading] = useState(false);
   const [wateringError, setWateringError] = useState('');
+
+  // Ticker to force re-render every 10 seconds, updating timeAgo relative labels in real-time
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loading = !sensor;
 

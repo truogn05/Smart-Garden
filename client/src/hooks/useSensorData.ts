@@ -51,7 +51,7 @@ async function fetchLatest(): Promise<{
         humidity: Number(sensorRaw.humidity ?? 0),
         rain: Number(sensorRaw.rain_intensity ?? sensorRaw.rain ?? 0),
         soil_moisture: Number(sensorRaw.soil_moisture ?? 0),
-        ts: sensorRaw.timestamp ? Number(sensorRaw.timestamp) : Date.now(),
+        ts: sensorRaw.recorded_at ? new Date(sensorRaw.recorded_at).getTime() : Date.now(),
       }
     : null;
 
@@ -117,7 +117,7 @@ export function useSensorData() {
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
+    const loadData = async () => {
       try {
         const [latest, history, devices] = await Promise.all([
           fetchLatest(),
@@ -134,14 +134,25 @@ export function useSensorData() {
           historyLoading: false,
           devices,
           devicesLoading: false,
-          lastUpdate: latest.sensor ? Date.now() : s.lastUpdate,
+          lastUpdate: latest.sensor ? latest.sensor.ts : s.lastUpdate,
         }));
-      } catch {
-        if (!cancelled) setState(s => ({ ...s, historyLoading: false, devicesLoading: false }));
+      } catch (err) {
+        console.error('[useSensorData] Error loading database data:', err);
+        if (!cancelled) {
+          setState(s => ({ ...s, historyLoading: false, devicesLoading: false }));
+        }
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
+    loadData();
+
+    // Poll database every 150 seconds to keep dashboard fresh even if SSE is idle
+    const intervalId = setInterval(loadData, 150 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
   }, []);
 
   // ── SSE realtime updates ───────────────────────────────────────────────────
