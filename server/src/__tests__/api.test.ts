@@ -6,10 +6,10 @@ import { signToken } from '../middleware/auth.js';
 
 const TEST_EMAIL = 'test@smartgarden.local';
 const TEST_PASSWORD = 'testpassword123';
+const validToken = signToken({ userId: 'test-id', email: TEST_EMAIL });
 
 describe('Auth endpoints', () => {
   let testUserId: string;
-  const validToken = signToken({ userId: 'test-id', email: TEST_EMAIL });
 
   afterAll(async () => {
     // Clean up test user
@@ -120,18 +120,24 @@ describe('Auth endpoints', () => {
 
 describe('Sensor endpoints', () => {
   it('GET /api/sensors/latest returns 200', async () => {
-    const res = await request(app).get('/api/sensors/latest');
+    const res = await request(app)
+      .get('/api/sensors/latest')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
   });
 
   it('GET /api/sensors/history returns 200', async () => {
-    const res = await request(app).get('/api/sensors/history');
+    const res = await request(app)
+      .get('/api/sensors/history')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
   it('GET /api/sensors/dryout returns 200', async () => {
-    const res = await request(app).get('/api/sensors/dryout');
+    const res = await request(app)
+      .get('/api/sensors/dryout')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
   });
 });
@@ -147,42 +153,56 @@ describe('Health endpoint', () => {
 
 describe('Device endpoints', () => {
   it('GET /api/devices/SENSOR_001/status returns device info', async () => {
-    const res = await request(app).get('/api/devices/SENSOR_001/status');
+    const res = await request(app)
+      .get('/api/devices/SENSOR_001/status')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
     expect(res.body.device_code).toBe('SENSOR_001');
   });
 
   it('GET /api/devices/UNKNOWN/status returns 404', async () => {
-    const res = await request(app).get('/api/devices/UNKNOWN/status');
+    const res = await request(app)
+      .get('/api/devices/UNKNOWN/status')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(404);
   });
 
   it('GET /api/devices/SENSOR_001/reset/init returns a token', async () => {
-    const res = await request(app).get('/api/devices/SENSOR_001/reset/init');
+    const res = await request(app)
+      .get('/api/devices/SENSOR_001/reset/init')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('token');
     expect(res.body.expires_in).toBe(60);
   });
 
   it('POST /api/devices/SENSOR_001/reset returns 400 without token', async () => {
-    const res = await request(app).post('/api/devices/SENSOR_001/reset');
+    const res = await request(app)
+      .post('/api/devices/SENSOR_001/reset')
+      .set('Authorization', `Bearer ${validToken}`);
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid or expired reset token');
   });
 
   it('POST /api/devices/SENSOR_001/reset returns 400 with wrong token', async () => {
-    await request(app).get('/api/devices/SENSOR_001/reset/init');
+    await request(app)
+      .get('/api/devices/SENSOR_001/reset/init')
+      .set('Authorization', `Bearer ${validToken}`);
     const res = await request(app)
       .post('/api/devices/SENSOR_001/reset')
+      .set('Authorization', `Bearer ${validToken}`)
       .send({ token: 'wrong-token' });
     expect(res.status).toBe(400);
   });
 
   it('POST /api/devices/SENSOR_001/reset returns 500 when MQTT not connected', async () => {
-    const initRes = await request(app).get('/api/devices/SENSOR_001/reset/init');
+    const initRes = await request(app)
+      .get('/api/devices/SENSOR_001/reset/init')
+      .set('Authorization', `Bearer ${validToken}`);
     const token = initRes.body.token;
     const res = await request(app)
       .post('/api/devices/SENSOR_001/reset')
+      .set('Authorization', `Bearer ${validToken}`)
       .send({ token });
     expect(res.status).toBe(500);
   });

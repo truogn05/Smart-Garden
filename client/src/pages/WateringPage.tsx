@@ -1,10 +1,42 @@
-import { useSensorData } from '../hooks/useSensorData';
 import { useState } from 'react';
+import { useSensorData } from '../hooks/useSensorData';
+import { DEFAULT_PUMP_CODE, API_BASE } from '../config';
 import { Droplets, Play, History, TrendingUp, Minus, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export function WateringPage() {
-  const { sensor, pump } = useSensorData();
+  const { sensor, pump, devices } = useSensorData();
   const [duration, setDuration] = useState(15);
+  const [wateringLoading, setWateringLoading] = useState(false);
+  const [wateringError, setWateringError] = useState('');
+
+  const pumpDevice = devices.find(d => d.device_type === 'pump');
+  const pumpCode = pumpDevice?.device_code || DEFAULT_PUMP_CODE;
+
+  async function triggerManualWatering() {
+    if (wateringLoading) return;
+    setWateringError('');
+    setWateringLoading(true);
+    try {
+      const cmdId = crypto.randomUUID();
+      const durationSec = duration * 60; // convert minutes to seconds
+      
+      const res = await fetch(`${API_BASE}/api/pump/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          device_code: pumpCode,
+          duration: durationSec,
+          cmd_id: cmdId
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to trigger watering');
+    } catch (err) {
+      setWateringError(err instanceof Error ? err.message : 'Error starting pump');
+    } finally {
+      setWateringLoading(false);
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-12 pb-24">
@@ -75,10 +107,17 @@ export function WateringPage() {
                   />
                   <span className="font-label-md text-primary min-w-[40px]">{duration}m</span>
                 </div>
+                {wateringError && (
+                  <p className="text-error text-xs font-bold mt-2">{wateringError}</p>
+                )}
               </div>
-              <button className="w-full md:w-auto px-12 py-4 bg-primary text-on-primary rounded-full font-label-md flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/10">
+              <button
+                onClick={triggerManualWatering}
+                disabled={wateringLoading || pump?.running}
+                className="w-full md:w-auto px-12 py-4 bg-primary text-on-primary disabled:opacity-50 rounded-full font-label-md flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/10"
+              >
                 <Play size={20} style={{ fill: 'currentColor' }} />
-                Manual Trigger
+                {wateringLoading ? 'Sending...' : pump?.running ? 'Watering...' : 'Manual Trigger'}
               </button>
             </div>
           </div>

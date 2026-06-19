@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE } from './useAuth';
+import { DEFAULT_SENSOR_CODE, DEFAULT_PUMP_CODE, API_BASE } from '../config';
 import { createSSEConnection, type SensorState, type SensorData, type DryoutData, type PumpStatus } from './useSSE';
 
 export interface HistoryPoint {
@@ -10,9 +10,21 @@ export interface HistoryPoint {
   rain_intensity: number | null;
 }
 
+export interface DeviceInfo {
+  id: string;
+  device_code: string;
+  device_type: 'sensor' | 'pump';
+  device_name: string;
+  is_active: boolean;
+  last_seen: string | null;
+  created_at: string;
+}
+
 export interface SensorStateWithHistory extends SensorState {
   history: HistoryPoint[];
   historyLoading: boolean;
+  devices: DeviceInfo[];
+  devicesLoading: boolean;
 }
 
 /** Fetch latest sensor + pump + dryout from DB (initial load) */
@@ -34,7 +46,7 @@ async function fetchLatest(): Promise<{
   // Map DB column names → SensorData shape
   const sensor: SensorData | null = sensorRaw && (sensorRaw.temp !== null || sensorRaw.soil_moisture !== null)
     ? {
-        device_code: sensorRaw.device_code ?? 'SENSOR_001',
+        device_code: sensorRaw.device_code ?? DEFAULT_SENSOR_CODE,
         temp: Number(sensorRaw.temp ?? 0),
         humidity: Number(sensorRaw.humidity ?? 0),
         rain: Number(sensorRaw.rain_intensity ?? sensorRaw.rain ?? 0),
@@ -45,7 +57,7 @@ async function fetchLatest(): Promise<{
 
   const pump: PumpStatus | null = pumpRaw
     ? {
-        device_code: pumpRaw.device_code ?? 'PUMP_001',
+        device_code: pumpRaw.device_code ?? DEFAULT_PUMP_CODE,
         running: Boolean(pumpRaw.running),
         remaining: Number(pumpRaw.remaining_sec ?? pumpRaw.remaining ?? 0),
         cmd_id: pumpRaw.cmd_id ?? '',
@@ -55,7 +67,7 @@ async function fetchLatest(): Promise<{
   const dryout: DryoutData | null =
     dryoutRaw && dryoutRaw.predicted_hours !== null && dryoutRaw.predicted_hours !== undefined
       ? {
-          device_code: dryoutRaw.device_code ?? 'SENSOR_001',
+          device_code: dryoutRaw.device_code ?? DEFAULT_SENSOR_CODE,
           hours: Number(dryoutRaw.predicted_hours ?? dryoutRaw.hours ?? 0),
           confidence: Number(dryoutRaw.confidence ?? 0),
           ts: dryoutRaw.created_at ? new Date(dryoutRaw.created_at).getTime() : Date.now(),
@@ -81,6 +93,13 @@ async function fetchHistory(limit = 50): Promise<HistoryPoint[]> {
     .reverse(); // API trả về DESC, chart cần ASC
 }
 
+/** Fetch registered devices list from DB */
+async function fetchDevices(): Promise<DeviceInfo[]> {
+  const res = await fetch(`${API_BASE}/api/devices`, { credentials: 'include' });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export function useSensorData() {
   const [state, setState] = useState<SensorStateWithHistory>({
     sensor: null,
@@ -90,6 +109,8 @@ export function useSensorData() {
     lastUpdate: null,
     history: [],
     historyLoading: true,
+    devices: [],
+    devicesLoading: true,
   });
 
   // ── Initial fetch from DB ──────────────────────────────────────────────────
@@ -98,7 +119,11 @@ export function useSensorData() {
 
     (async () => {
       try {
-        const [latest, history] = await Promise.all([fetchLatest(), fetchHistory(50)]);
+        const [latest, history, devices] = await Promise.all([
+          fetchLatest(),
+          fetchHistory(50),
+          fetchDevices()
+        ]);
         if (cancelled) return;
         setState(s => ({
           ...s,
@@ -107,10 +132,12 @@ export function useSensorData() {
           dryout: latest.dryout ?? s.dryout,
           history,
           historyLoading: false,
+          devices,
+          devicesLoading: false,
           lastUpdate: latest.sensor ? Date.now() : s.lastUpdate,
         }));
       } catch {
-        if (!cancelled) setState(s => ({ ...s, historyLoading: false }));
+        if (!cancelled) setState(s => ({ ...s, historyLoading: false, devicesLoading: false }));
       }
     })();
 
@@ -134,7 +161,7 @@ export function useSensorData() {
             const soilVal = incoming.soil_moisture !== undefined ? incoming.soil_moisture : incoming.moisture;
 
             const newSensor: SensorData = {
-              device_code: incoming.device_code || prev?.device_code || 'SENSOR_001',
+              device_code: incoming.device_code || prev?.device_code || DEFAULT_SENSOR_CODE,
               ts: incoming.ts || Date.now(),
               temp: (tempVal !== null && tempVal !== undefined && tempVal !== 0)
                 ? Number(tempVal)

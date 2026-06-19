@@ -7,6 +7,16 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const result = await query('SELECT * FROM devices ORDER BY created_at ASC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[Devices] listDevices error:', error);
+    res.status(500).json({ error: 'Failed to fetch devices' });
+  }
+});
+
 // In-memory reset tokens (device_code → { token, expiresAt })
 const resetTokens = new Map<string, { token: string; expiresAt: number }>();
 

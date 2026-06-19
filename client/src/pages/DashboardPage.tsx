@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useSensorData, type HistoryPoint } from '../hooks/useSensorData';
 import { ConnectionStatus } from '../components/ConnectionStatus';
+import { DEFAULT_SENSOR_CODE, DEFAULT_PUMP_CODE, API_BASE } from '../config';
 import { Thermometer, Droplets, Cloud, Play, WifiOff, Router, Network, Leaf, ChevronRight } from 'lucide-react';
 
 function SkeletonValue({ className = '' }: { className?: string }) {
@@ -120,8 +122,44 @@ function LineChart({ history, field, color = '#94492c' }: {
 }
 
 export function DashboardPage() {
-  const { sensor, pump, dryout, connection, lastUpdate, history, historyLoading } = useSensorData();
+  const { sensor, pump, dryout, connection, lastUpdate, history, historyLoading, devices } = useSensorData();
+  const [duration, setDuration] = useState(15);
+  const [wateringLoading, setWateringLoading] = useState(false);
+  const [wateringError, setWateringError] = useState('');
+
   const loading = !sensor;
+
+  const sensorDevice = devices.find(d => d.device_type === 'sensor');
+  const pumpDevice = devices.find(d => d.device_type === 'pump');
+
+  const sensorCode = sensorDevice?.device_code || DEFAULT_SENSOR_CODE;
+  const pumpCode = pumpDevice?.device_code || DEFAULT_PUMP_CODE;
+
+  async function startManualWatering() {
+    if (wateringLoading) return;
+    setWateringError('');
+    setWateringLoading(true);
+    try {
+      const cmdId = crypto.randomUUID();
+      const durationSec = duration * 60; // convert minutes to seconds
+      
+      const res = await fetch(`${API_BASE}/api/pump/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          device_code: pumpCode,
+          duration: durationSec,
+          cmd_id: cmdId
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to start manual watering');
+    } catch (err) {
+      setWateringError(err instanceof Error ? err.message : 'Error starting pump');
+    } finally {
+      setWateringLoading(false);
+    }
+  }
 
   const weatherHistory = history.filter(h => h.temp !== null);
   const soilHistory = history.filter(h => h.soil_moisture !== null);
@@ -251,14 +289,24 @@ export function DashboardPage() {
             <div className="space-y-6 pt-4">
               <div className="flex justify-between text-on-surface-variant font-label-md">
                 <span>Manual Duration</span>
-                <span className="text-primary font-bold">15 Minutes</span>
+                <span className="text-primary font-bold">{duration} Minutes</span>
               </div>
-              <input type="range" min="5" max="60" defaultValue="15" className="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary" />
+              <input
+                type="range"
+                min="5"
+                max="60"
+                value={duration}
+                onChange={e => setDuration(Number(e.target.value))}
+                className="w-full h-1 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"
+              />
               {pump?.running && pump.remaining > 0 && (
                 <div className="flex items-center gap-2 text-tertiary-container">
                   <span className="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse" />
                   <p className="font-label-md font-bold">Đang chạy — còn {pump.remaining}s</p>
                 </div>
+              )}
+              {wateringError && (
+                <p className="text-error text-xs font-bold">{wateringError}</p>
               )}
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-on-surface-variant text-sm">schedule</span>
@@ -266,9 +314,15 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-          <button className="w-full md:w-48 aspect-square bg-primary text-on-primary rounded-xl flex flex-col items-center justify-center gap-4 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+          <button
+            onClick={startManualWatering}
+            disabled={wateringLoading || pump?.running}
+            className="w-full md:w-48 aspect-square bg-primary text-on-primary disabled:opacity-50 rounded-xl flex flex-col items-center justify-center gap-4 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
             <Play size={36} style={{ fill: 'currentColor' }} />
-            <span className="font-label-md text-center px-4">Start Manual Watering</span>
+            <span className="font-label-md text-center px-4">
+              {wateringLoading ? 'Sending...' : pump?.running ? 'Watering...' : 'Start Manual Watering'}
+            </span>
           </button>
         </div>
 
@@ -299,30 +353,37 @@ export function DashboardPage() {
         <div className="md:col-span-12 lg:col-span-5 glass-card organic-shadow rounded-lg p-6 md:p-8 flex flex-col">
           <h3 className="font-headline-md text-headline-md text-primary mb-6">Network Nodes</h3>
           <div className="space-y-4 flex-1">
-            <div className="flex items-center justify-between p-4 bg-surface-container rounded-lg border border-outline-variant/10">
-              <div className="flex items-center gap-4">
-                <Network size={24} className="text-primary" />
-                <div>
-                  <p className="font-label-md font-bold">SENSOR_001</p>
-                  <p className="text-[12px] text-on-surface-variant">
-                    {sensor ? `Temp: ${sensor.temp.toFixed(1)}°C · Soil: ${sensor.soil_moisture}%` : 'Đang kết nối...'}
-                  </p>
+            {(() => {
+              const displayDevices = devices.length > 0 ? devices : [
+                { id: '1', device_code: DEFAULT_SENSOR_CODE, device_type: 'sensor', device_name: 'Garden Sensor' },
+                { id: '2', device_code: DEFAULT_PUMP_CODE, device_type: 'pump', device_name: 'Water Pump' }
+              ] as any[];
+              
+              return displayDevices.map(dev => (
+                <div key={dev.id} className="flex items-center justify-between p-4 bg-surface-container rounded-lg border border-outline-variant/10">
+                  <div className="flex items-center gap-4">
+                    {dev.device_type === 'sensor' ? (
+                      <Network size={24} className="text-primary" />
+                    ) : (
+                      <Router size={24} className="text-primary" />
+                    )}
+                    <div>
+                      <p className="font-label-md font-bold">{dev.device_code}</p>
+                      <p className="text-[12px] text-on-surface-variant">
+                        {dev.device_type === 'sensor'
+                          ? (sensor ? `Temp: ${sensor.temp.toFixed(1)}°C · Soil: ${sensor.soil_moisture}%` : 'Đang kết nối...')
+                          : (pump ? (pump.running ? `🟢 Đang chạy — còn ${pump.remaining}s` : '⚪ Idle') : 'Đang kết nối...')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`w-3 h-3 rounded-full ${
+                    dev.device_type === 'sensor'
+                      ? (sensor ? 'bg-tertiary-fixed-dim' : 'bg-outline')
+                      : (pump ? (pump.running ? 'bg-tertiary-fixed-dim animate-pulse' : 'bg-tertiary-fixed-dim') : 'bg-outline')
+                  }`} />
                 </div>
-              </div>
-              <span className={`w-3 h-3 rounded-full ${sensor ? 'bg-tertiary-fixed-dim' : 'bg-outline'}`} />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-surface-container rounded-lg border border-outline-variant/10">
-              <div className="flex items-center gap-4">
-                <Router size={24} className="text-primary" />
-                <div>
-                  <p className="font-label-md font-bold">PUMP_001</p>
-                  <p className="text-[12px] text-on-surface-variant">
-                    {pump ? (pump.running ? `🟢 Đang chạy — còn ${pump.remaining}s` : '⚪ Idle') : 'Đang kết nối...'}
-                  </p>
-                </div>
-              </div>
-              <span className={`w-3 h-3 rounded-full ${pump ? (pump.running ? 'bg-tertiary-fixed-dim animate-pulse' : 'bg-tertiary-fixed-dim') : 'bg-outline'}`} />
-            </div>
+              ));
+            })()}
             <div className="flex items-center justify-between p-4 bg-error-container/20 rounded-lg border border-error/20">
               <div className="flex items-center gap-4">
                 <WifiOff size={24} className="text-error" />
