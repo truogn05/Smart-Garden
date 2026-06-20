@@ -47,13 +47,13 @@ router.post('/register', async (req: Request, res: Response) => {
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
   res.cookie('logged_in', 'true', {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   res.status(201).json({ user: { id: user.id, email: user.email } });
@@ -88,13 +88,13 @@ router.post('/login', async (req: Request, res: Response) => {
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
   res.cookie('logged_in', 'true', {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   res.json({ user: { id: user.id, email: user.email } });
@@ -109,7 +109,7 @@ router.post('/logout', (_req: Request, res: Response) => {
   const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
   };
   res.clearCookie('jwt', cookieOpts);
   res.clearCookie('logged_in', { ...cookieOpts, httpOnly: false });

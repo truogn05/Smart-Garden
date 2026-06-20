@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { isLoggedIn } from './hooks/useAuth';
+import { isLoggedIn, API_BASE } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DevicesPage } from './pages/DevicesPage';
@@ -12,7 +12,34 @@ import { AppShell } from './layouts/AppShell';
 import './index.css';
 
 export default function App() {
-  const [authed, setAuthed] = useState(isLoggedIn);
+  const [authed, setAuthed] = useState(isLoggedIn());
+  const [checkingAuth, setCheckingAuth] = useState(isLoggedIn());
+
+  useEffect(() => {
+    async function verifyAuth() {
+      if (!isLoggedIn()) {
+        setCheckingAuth(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'include' });
+        if (res.ok) {
+          setAuthed(true);
+        } else {
+          // Token on server is invalid or expired, clear client session state
+          localStorage.removeItem('logged_in');
+          document.cookie = 'logged_in=; Max-Age=0; path=/';
+          setAuthed(false);
+        }
+      } catch (err) {
+        // Network/server offline error - keep authed state as fallback
+        console.error('[App] Server connection error during auth verification:', err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    }
+    verifyAuth();
+  }, []);
 
   useEffect(() => {
     // Lắng nghe sự kiện logout từ useAuth.logout() để re-render ngay lập tức
@@ -21,6 +48,15 @@ export default function App() {
     window.addEventListener('app:logout', handleLogout);
     return () => window.removeEventListener('app:logout', handleLogout);
   }, []);
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+        <p className="font-label-md text-label-md text-on-surface-variant animate-pulse">VERIFYING SESSION...</p>
+      </div>
+    );
+  }
 
   if (!authed) {
     return (

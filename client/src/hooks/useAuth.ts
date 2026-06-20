@@ -1,9 +1,25 @@
 export const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// ── Global Fetch Interceptor for 401 Unauthorized ──────────────────────────
+const originalFetch = window.fetch;
+window.fetch = async function (...args) {
+  const res = await originalFetch(...args);
+  if (res.status === 401) {
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+    // Exclude auth endpoints to prevent redirect loops or conflict with initial loading checks
+    if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register') && !url.includes('/api/auth/me')) {
+      localStorage.removeItem('logged_in');
+      document.cookie = 'logged_in=; Max-Age=0; path=/';
+      window.dispatchEvent(new Event('app:logout'));
+    }
+  }
+  return res;
+};
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 export function isLoggedIn(): boolean {
-  return document.cookie.split('; ').some(c => c.startsWith('logged_in='));
+  return localStorage.getItem('logged_in') === 'true' || document.cookie.split('; ').some(c => c.startsWith('logged_in='));
 }
 
 export async function login(email: string, password: string) {
@@ -17,6 +33,7 @@ export async function login(email: string, password: string) {
     const err = await res.json().catch(() => ({ error: 'Login failed' }));
     throw new Error(err.error || 'Login failed');
   }
+  localStorage.setItem('logged_in', 'true');
   return res.json();
 }
 
@@ -31,6 +48,7 @@ export async function register(email: string, password: string) {
     const err = await res.json().catch(() => ({ error: 'Registration failed' }));
     throw new Error(err.error || 'Registration failed');
   }
+  localStorage.setItem('logged_in', 'true');
   return res.json();
 }
 
@@ -47,8 +65,9 @@ export async function logout(): Promise<void> {
   } catch {
     // Dù server có lỗi, vẫn xóa cookie phía client
   }
-  // Xóa logged_in cookie phía client (không httpOnly, JS có thể xóa)
+  // Xóa logged_in cookie phía client
   document.cookie = 'logged_in=; Max-Age=0; path=/';
+  localStorage.removeItem('logged_in');
   // Notify App.tsx để re-render về login page
   window.dispatchEvent(new Event('app:logout'));
 }
