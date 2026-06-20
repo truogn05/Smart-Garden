@@ -54,4 +54,22 @@ router.get('/status', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/history', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
+  const { device = 'PUMP_001', limit = '10' } = req.query as { device?: string; limit?: string };
+  const limitNum = Math.min(parseInt(limit, 10), 100);
+
+  try {
+    const result = await query(
+      'SELECT * FROM pump_events WHERE device_code = $1 ORDER BY created_at DESC LIMIT $2',
+      [device, limitNum]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[Pump] getHistory error:', error);
+    res.status(500).json({ error: 'Failed to fetch pump history' });
+  }
+});
+
 export default router;

@@ -170,4 +170,22 @@ router.get('/dryout', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/predictions', async (req: Request, res: Response) => {
+  if (!requireAuth(req, res)) return;
+
+  const { device = 'SENSOR_001', limit = '5' } = req.query as { device?: string; limit?: string };
+  const limitNum = Math.min(parseInt(limit, 10), 50);
+
+  try {
+    const result = await query(
+      'SELECT * FROM ai_predictions WHERE device_code = $1 ORDER BY created_at DESC LIMIT $2',
+      [device, limitNum]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[Sensors] getPredictions error:', error);
+    res.status(500).json({ error: 'Failed to fetch predictions history' });
+  }
+});
+
 export default router;
