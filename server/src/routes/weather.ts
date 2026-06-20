@@ -40,7 +40,7 @@ router.get('/forecast', async (req: Request, res: Response) => {
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LNG}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LNG}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Open-Meteo API returned status ${response.status}`);

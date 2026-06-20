@@ -128,7 +128,7 @@ export function DashboardPage() {
   const [wateringError, setWateringError] = useState('');
 
   // Ticker to force re-render every 10 seconds, updating timeAgo relative labels in real-time
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
       setTick(t => t + 1);
@@ -138,10 +138,7 @@ export function DashboardPage() {
 
   const loading = !sensor;
 
-  const sensorDevice = devices.find(d => d.device_type === 'sensor');
   const pumpDevice = devices.find(d => d.device_type === 'pump');
-
-  const sensorCode = sensorDevice?.device_code || DEFAULT_SENSOR_CODE;
   const pumpCode = pumpDevice?.device_code || DEFAULT_PUMP_CODE;
 
   async function startManualWatering() {

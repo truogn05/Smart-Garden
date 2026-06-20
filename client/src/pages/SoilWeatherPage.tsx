@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSensorData } from '../hooks/useSensorData';
-import { Droplets, Cloud, Leaf, Gauge, Eye, Sun, Wind } from 'lucide-react';
+import { Droplets, Cloud, Gauge, Eye, Sun, Wind } from 'lucide-react';
 import { API_BASE } from '../config';
 
 function buildAbsolutePath(points: (number | null)[], maxVal: number, width = 500, height = 200): string {
@@ -227,7 +227,7 @@ export function SoilWeatherPage() {
 
         {/* Right Column */}
         <aside className="md:col-span-4 space-y-8">
-          {/* 5-Day Forecast */}
+          {/* 7-Day Forecast */}
           <section className="glass-card p-6 rounded-lg organic-shadow">
             <div className="flex items-center gap-3 mb-8">
               <Cloud size={24} className="text-primary" />
@@ -235,7 +235,7 @@ export function SoilWeatherPage() {
             </div>
             <div className="space-y-6">
               {weatherLoading || !weatherData ? (
-                Array.from({ length: 5 }).map((_, i) => (
+                Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="flex items-center justify-between animate-pulse">
                     <div className="w-16 h-4 bg-surface-variant rounded" />
                     <div className="w-5 h-5 bg-surface-variant rounded-full" />
