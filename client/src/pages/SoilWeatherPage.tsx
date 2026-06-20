@@ -1,19 +1,345 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSensorData } from '../hooks/useSensorData';
 import { Droplets, Cloud, Gauge, Eye, Sun, Wind } from 'lucide-react';
 import { API_BASE } from '../config';
 
-function buildAbsolutePath(points: (number | null)[], maxVal: number, width = 500, height = 200): string {
-  const valid = points.map((v, i) => ({ v, i })).filter(p => p.v !== null && p.v !== undefined);
-  if (valid.length < 2) return '';
-  const step = width / (points.length - 1 || 1);
-  return valid
-    .map((p) => {
-      const x = p.i * step;
-      const y = height - (Math.max(0, Math.min(maxVal, Number(p.v))) / maxVal) * height;
-      return `${p.i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
+interface InteractiveStabilityChartProps {
+  history: any[];
+  range: '1h' | '24h' | '3d';
+  historyLoading: boolean;
+}
+
+function InteractiveStabilityChart({ history, range, historyLoading }: InteractiveStabilityChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number;
+    yTemp: number | null;
+    yMoisture: number | null;
+    tempVal: number | null;
+    moistureVal: number | null;
+    recorded_at: string;
+  } | null>(null);
+
+  if (historyLoading) {
+    return (
+      <div className="absolute inset-0 bg-surface-variant/10 animate-pulse rounded-lg flex items-center justify-center">
+        <span className="text-xs text-on-surface-variant font-label-md">Đang tải lịch sử...</span>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs text-on-surface-variant font-label-md">Chưa có dữ liệu lịch sử</span>
+      </div>
+    );
+  }
+
+  const endTime = Date.now();
+  let startTime = endTime;
+  if (range === '1h') startTime = endTime - 60 * 60 * 1000;
+  else if (range === '24h') startTime = endTime - 24 * 60 * 60 * 1000;
+  else if (range === '3d') startTime = endTime - 3 * 24 * 60 * 60 * 1000;
+
+  let gapThreshold = 8 * 60 * 1000; // 8 mins for 1h
+  if (range === '24h') gapThreshold = 3 * 60 * 60 * 1000; // 3 hours
+  else if (range === '3d') gapThreshold = 9 * 60 * 60 * 1000; // 9 hours
+
+  const width = 500;
+  const height = 200;
+  const paddingY = 15;
+  const chartHeight = height - paddingY * 2;
+
+  const coords = history.map(h => {
+    const t = new Date(h.recorded_at).getTime();
+    const x = ((t - startTime) / (endTime - startTime)) * width;
+    
+    const tempVal = h.temp !== null && h.temp !== undefined ? Number(h.temp) : null;
+    const yTemp = tempVal !== null ? height - paddingY - (Math.max(0, Math.min(50, tempVal)) / 50) * chartHeight : null;
+    
+    const moistureVal = h.soil_moisture !== null && h.soil_moisture !== undefined ? Number(h.soil_moisture) : null;
+    const yMoisture = moistureVal !== null ? height - paddingY - (Math.max(0, Math.min(100, moistureVal)) / 100) * chartHeight : null;
+    
+    return { x, yTemp, yMoisture, tempVal, moistureVal, t, recorded_at: h.recorded_at };
+  });
+
+  const boundedCoords = coords.filter(c => c.x >= -5 && c.x <= width + 5);
+
+  // Group temperature points
+  const tempCoords = boundedCoords.filter(c => c.yTemp !== null) as (typeof boundedCoords[number] & { yTemp: number; tempVal: number })[];
+  const tempSegments: { type: 'solid' | 'dashed'; points: typeof tempCoords }[] = [];
+  let currentTempSeg: typeof tempCoords = [];
+
+  for (let i = 0; i < tempCoords.length; i++) {
+    const p = tempCoords[i];
+    if (currentTempSeg.length === 0) {
+      currentTempSeg.push(p);
+    } else {
+      const prev = currentTempSeg[currentTempSeg.length - 1];
+      const timeDiff = p.t - prev.t;
+      if (timeDiff > gapThreshold) {
+        tempSegments.push({ type: 'solid', points: [...currentTempSeg] });
+        tempSegments.push({ type: 'dashed', points: [prev, p] });
+        currentTempSeg = [p];
+      } else {
+        currentTempSeg.push(p);
+      }
+    }
+  }
+  if (currentTempSeg.length > 0) {
+    tempSegments.push({ type: 'solid', points: currentTempSeg });
+  }
+
+  // Group moisture points
+  const moistureCoords = boundedCoords.filter(c => c.yMoisture !== null) as (typeof boundedCoords[number] & { yMoisture: number; moistureVal: number })[];
+  const moistureSegments: { type: 'solid' | 'dashed'; points: typeof moistureCoords }[] = [];
+  let currentMoistureSeg: typeof moistureCoords = [];
+
+  for (let i = 0; i < moistureCoords.length; i++) {
+    const p = moistureCoords[i];
+    if (currentMoistureSeg.length === 0) {
+      currentMoistureSeg.push(p);
+    } else {
+      const prev = currentMoistureSeg[currentMoistureSeg.length - 1];
+      const timeDiff = p.t - prev.t;
+      if (timeDiff > gapThreshold) {
+        moistureSegments.push({ type: 'solid', points: [...currentMoistureSeg] });
+        moistureSegments.push({ type: 'dashed', points: [prev, p] });
+        currentMoistureSeg = [p];
+      } else {
+        currentMoistureSeg.push(p);
+      }
+    }
+  }
+  if (currentMoistureSeg.length > 0) {
+    moistureSegments.push({ type: 'solid', points: currentMoistureSeg });
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    if (!containerRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const xRatio = clientX / rect.width;
+    const targetX = xRatio * width;
+
+    if (boundedCoords.length === 0) return;
+
+    let closestPoint = boundedCoords[0];
+    let minDistance = Math.abs(closestPoint.x - targetX);
+
+    for (let i = 1; i < boundedCoords.length; i++) {
+      const dist = Math.abs(boundedCoords[i].x - targetX);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestPoint = boundedCoords[i];
+      }
+    }
+
+    if (minDistance < 40) {
+      setHoveredPoint(closestPoint);
+    } else {
+      setHoveredPoint(null);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
+  };
+
+  const getBezierPathStability = (pts: { x: number; y: number }[]) => {
+    if (pts.length < 2) return '';
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const curr = pts[i];
+      const next = pts[i + 1];
+      const cpX1 = curr.x + (next.x - curr.x) / 2;
+      const cpY1 = curr.y;
+      const cpX2 = curr.x + (next.x - curr.x) / 2;
+      const cpY2 = next.y;
+      d += ` C ${cpX1.toFixed(1)} ${cpY1.toFixed(1)}, ${cpX2.toFixed(1)} ${cpY2.toFixed(1)}, ${next.x.toFixed(1)} ${next.y.toFixed(1)}`;
+    }
+    return d;
+  };
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+      <svg
+        className="w-full h-full cursor-crosshair overflow-visible"
+        preserveAspectRatio="none"
+        viewBox={`0 0 ${width} ${height}`}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <line x1="0" y1={paddingY} x2={width} y2={paddingY} stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+        <line x1="0" y1={paddingY + chartHeight * 0.25} x2={width} y2={paddingY + chartHeight * 0.25} stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+        <line x1="0" y1={paddingY + chartHeight * 0.5} x2={width} y2={paddingY + chartHeight * 0.5} stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+        <line x1="0" y1={paddingY + chartHeight * 0.75} x2={width} y2={paddingY + chartHeight * 0.75} stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+        <line x1="0" y1={height - paddingY} x2={width} y2={height - paddingY} stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.15" />
+
+        {/* Temperature Lines (Solid Green / Dashed Gap) */}
+        {tempSegments.map((seg, idx) => {
+          if (seg.points.length < 2) {
+            if (seg.type === 'solid' && seg.points.length === 1) {
+              return (
+                <circle
+                  key={`t-dot-${idx}`}
+                  cx={seg.points[0].x}
+                  cy={seg.points[0].yTemp}
+                  r="3"
+                  fill="var(--color-primary, #2d6a4f)"
+                  opacity="0.8"
+                />
+              );
+            }
+            return null;
+          }
+          const pts = seg.points.map(p => ({ x: p.x, y: p.yTemp }));
+          const p = getBezierPathStability(pts);
+          if (!p) return null;
+          return (
+            <path
+              key={`t-line-${idx}`}
+              d={p}
+              fill="none"
+              stroke="var(--color-primary, #2d6a4f)"
+              strokeLinecap="round"
+              strokeWidth="2.5"
+              strokeDasharray={seg.type === 'dashed' ? '4 4' : undefined}
+              opacity={seg.type === 'dashed' ? 0.3 : 1}
+            />
+          );
+        })}
+
+        {/* Moisture Lines (Dashed Brown / Dotted Gap) */}
+        {moistureSegments.map((seg, idx) => {
+          if (seg.points.length < 2) {
+            if (seg.type === 'solid' && seg.points.length === 1) {
+              return (
+                <circle
+                  key={`m-dot-${idx}`}
+                  cx={seg.points[0].x}
+                  cy={seg.points[0].yMoisture}
+                  r="3"
+                  fill="var(--color-secondary, #94492c)"
+                  opacity="0.8"
+                />
+              );
+            }
+            return null;
+          }
+          const pts = seg.points.map(p => ({ x: p.x, y: p.yMoisture }));
+          const p = getBezierPathStability(pts);
+          if (!p) return null;
+          return (
+            <path
+              key={`m-line-${idx}`}
+              d={p}
+              fill="none"
+              stroke="var(--color-secondary, #94492c)"
+              strokeLinecap="round"
+              strokeWidth="2.5"
+              strokeDasharray={seg.type === 'dashed' ? '1 6' : '4 4'}
+              opacity={seg.type === 'dashed' ? 0.3 : 1}
+            />
+          );
+        })}
+
+        {hoveredPoint && (
+          <>
+            <line
+              x1={hoveredPoint.x}
+              y1={0}
+              x2={hoveredPoint.x}
+              y2={height}
+              stroke="var(--color-outline-variant)"
+              strokeWidth="0.5"
+              strokeDasharray="2 2"
+              opacity="0.8"
+            />
+            {hoveredPoint.yTemp !== null && (
+              <>
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.yTemp}
+                  r="7"
+                  fill="var(--color-primary, #2d6a4f)"
+                  opacity="0.2"
+                  className="animate-ping"
+                  style={{ transformOrigin: `${hoveredPoint.x}px ${hoveredPoint.yTemp}px` }}
+                />
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.yTemp}
+                  r="4.5"
+                  fill="var(--color-surface)"
+                  stroke="var(--color-primary, #2d6a4f)"
+                  strokeWidth="2"
+                />
+              </>
+            )}
+            {hoveredPoint.yMoisture !== null && (
+              <>
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.yMoisture}
+                  r="7"
+                  fill="var(--color-secondary, #94492c)"
+                  opacity="0.2"
+                  className="animate-ping"
+                  style={{ transformOrigin: `${hoveredPoint.x}px ${hoveredPoint.yMoisture}px` }}
+                />
+                <circle
+                  cx={hoveredPoint.x}
+                  cy={hoveredPoint.yMoisture}
+                  r="4.5"
+                  fill="var(--color-surface)"
+                  stroke="var(--color-secondary, #94492c)"
+                  strokeWidth="2"
+                />
+              </>
+            )}
+          </>
+        )}
+      </svg>
+
+      {hoveredPoint && (
+        <div
+          className="absolute z-10 pointer-events-none bg-surface-container-high/95 border border-outline-variant/30 text-on-surface p-2.5 rounded-lg shadow-lg font-label-md text-xs backdrop-blur-md flex flex-col gap-1 transition-all duration-75"
+          style={{
+            left: `calc(${(hoveredPoint.x / width) * 100}% + ${
+              hoveredPoint.x < 60 ? 4 : hoveredPoint.x > width - 60 ? -4 : 0
+            }px)`,
+            top: `${(Math.min(hoveredPoint.yTemp ?? 100, hoveredPoint.yMoisture ?? 100) / height) * 100 - 8}%`,
+            transform: `translate(${
+              hoveredPoint.x < 60 ? '0%' : hoveredPoint.x > width - 60 ? '-100%' : '-50%'
+            }, -100%)`,
+          }}
+        >
+          <div className="text-on-surface-variant font-bold">
+            {new Date(hoveredPoint.recorded_at).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              month: '2-digit',
+              day: '2-digit',
+            })}
+          </div>
+          {hoveredPoint.tempVal !== null && (
+            <div className="font-bold flex items-center gap-1.5 text-primary">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Nhiệt độ: {hoveredPoint.tempVal.toFixed(1)}°C
+            </div>
+          )}
+          {hoveredPoint.moistureVal !== null && (
+            <div className="font-bold flex items-center gap-1.5 text-secondary">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+              Độ ẩm đất: {hoveredPoint.moistureVal.toFixed(2)}%
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function SoilWeatherPage() {
@@ -51,11 +377,21 @@ export function SoilWeatherPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const tempPoints = history.map(h => h.temp);
-  const moisturePoints = history.map(h => h.soil_moisture);
+  const endTime = Date.now();
+  const startTime = range === '1h' ? endTime - 3600 * 1000 : range === '24h' ? endTime - 24 * 3600 * 1000 : endTime - 3 * 24 * 3600 * 1000;
+  const midTime = (startTime + endTime) / 2;
 
-  const tempPath = buildAbsolutePath(tempPoints, 50, 500, 200);
-  const moisturePath = buildAbsolutePath(moisturePoints, 100, 500, 200);
+  const startLabel = new Date(startTime).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
+  });
+
+  const midLabel = new Date(midTime).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
+  });
 
   const avgMoisture = (() => {
     const valid = history.filter(h => h.soil_moisture !== null && h.soil_moisture !== undefined);
@@ -143,51 +479,15 @@ export function SoilWeatherPage() {
 
             {/* Chart */}
             <div className="relative h-[250px] w-full border-b border-l border-outline-variant/30 px-2 mt-8">
-              {historyLoading ? (
-                <div className="absolute inset-0 bg-surface-variant/10 animate-pulse rounded-lg flex items-center justify-center">
-                  <span className="text-xs text-on-surface-variant font-label-md">Đang tải lịch sử...</span>
-                </div>
-              ) : history.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs text-on-surface-variant font-label-md">Chưa có dữ liệu lịch sử</span>
-                </div>
-              ) : (
-                <div className="w-full h-full relative">
-                  <svg className="w-full h-full" viewBox="0 0 500 200" preserveAspectRatio="none">
-                    <line x1="0" y1="50" x2="500" y2="50" stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.3" />
-                    <line x1="0" y1="100" x2="500" y2="100" stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.3" />
-                    <line x1="0" y1="150" x2="500" y2="150" stroke="var(--color-outline-variant)" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.3" />
-                    
-                    {tempPath && (
-                      <path d={tempPath} fill="none" stroke="var(--color-primary, #2d6a4f)" strokeWidth="2.5" strokeLinecap="round" />
-                    )}
-
-                    {moisturePath && (
-                      <path d={moisturePath} fill="none" stroke="var(--color-secondary, #94492c)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 4" />
-                    )}
-                  </svg>
-                </div>
-              )}
+              <InteractiveStabilityChart history={history} range={range} historyLoading={historyLoading} />
             </div>
 
             {/* X Axis Labels */}
             <div className="flex justify-between mt-4 text-[11px] text-on-surface-variant px-2">
               {!historyLoading && history.length > 0 ? (
                 <>
-                  <span>
-                    {new Date(history[0].recorded_at).toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
-                    })}
-                  </span>
-                  <span>
-                    {new Date(history[Math.floor(history.length / 2)].recorded_at).toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
-                    })}
-                  </span>
+                  <span>{startLabel}</span>
+                  <span>{midLabel}</span>
                   <span>Bây giờ</span>
                 </>
               ) : (

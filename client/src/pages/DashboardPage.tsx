@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSensorData, type HistoryPoint } from '../hooks/useSensorData';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import { DEFAULT_SENSOR_CODE, DEFAULT_PUMP_CODE, API_BASE } from '../config';
@@ -18,103 +18,278 @@ function timeAgo(ts: number | null): string {
   return `${Math.floor(diff / 3600)} giờ trước`;
 }
 
-/** Tạo SVG path từ mảng giá trị */
-function buildPath(points: (number | null)[], width = 400, height = 100): string {
-  const valid = points.map((v, i) => ({ v, i })).filter(p => p.v !== null && p.v !== undefined);
-  if (valid.length < 2) return '';
-  const vals = valid.map(p => p.v as number);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const step = width / (valid.length - 1);
-  return valid
-    .map((p, idx) => {
-      const x = idx * step;
-      const y = height - ((p.v as number - min) / range) * (height * 0.85) - height * 0.07;
-      return `${idx === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
-/** Mini sparkline bar chart */
-function BarChart({ points, color = '#2d6a4f' }: { points: (number | null)[]; color?: string }) {
-  if (points.length === 0) {
-    return (
-      <div className="h-48 flex items-center justify-center text-on-surface-variant font-label-md">
-        Chưa có dữ liệu lịch sử
-      </div>
-    );
+/** Interpolates coordinates smoothly using cubic Bezier curves */
+function getBezierPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const curr = pts[i];
+    const next = pts[i + 1];
+    const cpX1 = curr.x + (next.x - curr.x) / 2;
+    const cpY1 = curr.y;
+    const cpX2 = curr.x + (next.x - curr.x) / 2;
+    const cpY2 = next.y;
+    d += ` C ${cpX1.toFixed(1)} ${cpY1.toFixed(1)}, ${cpX2.toFixed(1)} ${cpY2.toFixed(1)}, ${next.x.toFixed(1)} ${next.y.toFixed(1)}`;
   }
-  const vals = points.filter((v): v is number => v !== null);
-  const max = Math.max(...vals, 1);
-  return (
-    <div className="h-48 flex items-end gap-1 px-2">
-      {points.map((v, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-t-full transition-all hover:opacity-80"
-          style={{
-            height: `${v !== null ? Math.max(4, (v / max) * 100) : 2}%`,
-            backgroundColor: v !== null ? color : '#e0e0e0',
-            opacity: v !== null ? 0.7 + (i / points.length) * 0.3 : 0.2,
-          }}
-        />
-      ))}
-    </div>
-  );
+  return d;
 }
 
-/** Line chart SVG */
-function LineChart({ history, field, color = '#94492c' }: {
+interface InteractiveLineChartProps {
   history: HistoryPoint[];
-  field: keyof Pick<HistoryPoint, 'soil_moisture' | 'temp' | 'humidity'>;
-  color?: string;
-}) {
-  const points = history.map(h => h[field] as number | null);
-  const path = buildPath(points);
-  if (!path) {
+  field: 'temp' | 'soil_moisture';
+  range: '1h' | '24h' | '3d';
+  color: string;
+  unit: string;
+}
+
+function InteractiveLineChart({ history, field, range, color, unit }: InteractiveLineChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number;
+    y: number;
+    val: number;
+    recorded_at: string;
+  } | null>(null);
+
+  const validHistory = history.filter(h => h[field] !== null && h[field] !== undefined);
+
+  if (validHistory.length === 0) {
     return (
       <div className="h-48 flex items-center justify-center text-on-surface-variant font-label-md">
         Chưa có dữ liệu lịch sử
       </div>
     );
   }
-  const vals = points.filter((v): v is number => v !== null);
-  const lastVal = vals[vals.length - 1];
-  const lastPoint = (() => {
-    const valid = points.map((v, i) => ({ v, i })).filter(p => p.v !== null);
-    if (!valid.length) return null;
-    const last = valid[valid.length - 1];
-    const min = Math.min(...vals); const max = Math.max(...vals); const range = max - min || 1;
-    const step = 400 / (valid.length - 1 || 1);
-    return {
-      x: (valid.length - 1) * step,
-      y: 100 - ((last.v as number - min) / range) * 85 - 7,
-    };
-  })();
+
+  const endTime = Date.now();
+  let startTime = endTime;
+  if (range === '1h') startTime = endTime - 60 * 60 * 1000;
+  else if (range === '24h') startTime = endTime - 24 * 60 * 60 * 1000;
+  else if (range === '3d') startTime = endTime - 3 * 24 * 60 * 60 * 1000;
+
+  let gapThreshold = 8 * 60 * 1000; // 8 mins for 1h
+  if (range === '24h') gapThreshold = 3 * 60 * 60 * 1000; // 3 hours
+  else if (range === '3d') gapThreshold = 9 * 60 * 60 * 1000; // 9 hours
+
+  const vals = validHistory.map(h => h[field] as number);
+  const minVal = Math.min(...vals);
+  const maxVal = Math.max(...vals);
+  const dataSpan = maxVal - minVal;
+  let displayMin = minVal;
+  let displayMax = maxVal;
+
+  if (field === 'temp') {
+    if (dataSpan < 10) {
+      const mid = (minVal + maxVal) / 2;
+      displayMin = mid - 5;
+      displayMax = mid + 5;
+    } else {
+      displayMin = minVal - dataSpan * 0.1;
+      displayMax = maxVal + dataSpan * 0.1;
+    }
+  } else {
+    if (dataSpan < 30) {
+      const mid = (minVal + maxVal) / 2;
+      displayMin = Math.max(0, mid - 15);
+      displayMax = Math.min(100, mid + 15);
+    } else {
+      displayMin = Math.max(0, minVal - dataSpan * 0.1);
+      displayMax = Math.min(100, maxVal + dataSpan * 0.1);
+    }
+  }
+
+  const yRange = displayMax - displayMin || 1;
+  const width = 400;
+  const height = 100;
+  const paddingY = 10;
+  const chartHeight = height - paddingY * 2;
+
+  const coords = validHistory.map(h => {
+    const t = new Date(h.recorded_at).getTime();
+    const x = ((t - startTime) / (endTime - startTime)) * width;
+    const val = h[field] as number;
+    const y = height - paddingY - ((val - displayMin) / yRange) * chartHeight;
+    return { x, y, t, val, recorded_at: h.recorded_at };
+  });
+
+  const boundedCoords = coords.filter(c => c.x >= -5 && c.x <= width + 5);
+
+  const segments: { type: 'solid' | 'dashed'; points: typeof boundedCoords }[] = [];
+  let currentSegment: typeof boundedCoords = [];
+
+  for (let i = 0; i < boundedCoords.length; i++) {
+    const p = boundedCoords[i];
+    if (currentSegment.length === 0) {
+      currentSegment.push(p);
+    } else {
+      const prev = currentSegment[currentSegment.length - 1];
+      const timeDiff = p.t - prev.t;
+      if (timeDiff > gapThreshold) {
+        segments.push({ type: 'solid', points: [...currentSegment] });
+        segments.push({ type: 'dashed', points: [prev, p] });
+        currentSegment = [p];
+      } else {
+        currentSegment.push(p);
+      }
+    }
+  }
+  if (currentSegment.length > 0) {
+    segments.push({ type: 'solid', points: currentSegment });
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
+    if (!containerRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const xRatio = clientX / rect.width;
+    const targetX = xRatio * width;
+
+    let closestPoint = boundedCoords[0];
+    let minDistance = Math.abs(closestPoint.x - targetX);
+
+    for (let i = 1; i < boundedCoords.length; i++) {
+      const dist = Math.abs(boundedCoords[i].x - targetX);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestPoint = boundedCoords[i];
+      }
+    }
+
+    if (minDistance < 40) {
+      setHoveredPoint(closestPoint);
+    } else {
+      setHoveredPoint(null);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredPoint(null);
+  };
 
   return (
-    <div className="h-48 relative border-b border-l border-outline-variant/30">
-      <svg className="w-full h-full px-4" preserveAspectRatio="none" viewBox="0 0 400 100">
+    <div ref={containerRef} className="h-48 relative border-b border-l border-outline-variant/30">
+      <svg
+        className="w-full h-full cursor-crosshair overflow-visible"
+        preserveAspectRatio="none"
+        viewBox={`0 0 ${width} ${height}`}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         <defs>
           <linearGradient id={`grad-${field}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        {path && (
+
+        {segments.map((seg, idx) => {
+          if (seg.type !== 'solid' || seg.points.length < 2) return null;
+          const p = getBezierPath(seg.points);
+          if (!p) return null;
+          const first = seg.points[0];
+          const last = seg.points[seg.points.length - 1];
+          const fillPath = `${p} L ${last.x.toFixed(1)} ${height} L ${first.x.toFixed(1)} ${height} Z`;
+          return (
+            <path
+              key={`fill-${idx}`}
+              d={fillPath}
+              fill={`url(#grad-${field})`}
+              className="transition-opacity duration-300"
+            />
+          );
+        })}
+
+        {segments.map((seg, idx) => {
+          if (seg.points.length < 2) {
+            if (seg.type === 'solid' && seg.points.length === 1) {
+              const pt = seg.points[0];
+              return (
+                <circle
+                  key={`dot-${idx}`}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="3"
+                  fill={color}
+                  opacity="0.8"
+                />
+              );
+            }
+            return null;
+          }
+          const p = getBezierPath(seg.points);
+          if (!p) return null;
+          return (
+            <path
+              key={`line-${idx}`}
+              d={p}
+              fill="none"
+              stroke={color}
+              strokeLinecap="round"
+              strokeWidth="2.5"
+              strokeDasharray={seg.type === 'dashed' ? '4 4' : undefined}
+              opacity={seg.type === 'dashed' ? 0.4 : 1}
+            />
+          );
+        })}
+
+        {hoveredPoint && (
           <>
-            <path d={`${path} L400,100 L0,100 Z`} fill={`url(#grad-${field})`} />
-            <path d={path} fill="none" stroke={color} strokeLinecap="round" strokeWidth="2.5" />
+            <line
+              x1={hoveredPoint.x}
+              y1={0}
+              x2={hoveredPoint.x}
+              y2={height}
+              stroke="var(--color-outline-variant)"
+              strokeWidth="0.5"
+              strokeDasharray="2 2"
+              opacity="0.8"
+            />
+            <circle
+              cx={hoveredPoint.x}
+              cy={hoveredPoint.y}
+              r="7"
+              fill={color}
+              opacity="0.3"
+              className="animate-ping"
+              style={{ transformOrigin: `${hoveredPoint.x}px ${hoveredPoint.y}px` }}
+            />
+            <circle
+              cx={hoveredPoint.x}
+              cy={hoveredPoint.y}
+              r="4.5"
+              fill="var(--color-surface)"
+              stroke={color}
+              strokeWidth="2"
+            />
           </>
         )}
-        {lastPoint && (
-          <circle cx={lastPoint.x} cy={lastPoint.y} r="4.5" fill={color} />
-        )}
       </svg>
-      {lastVal !== undefined && (
-        <div className="absolute top-2 right-4 font-label-md text-xs" style={{ color }}>
-          {lastVal.toFixed(1)}
+
+      {hoveredPoint && (
+        <div
+          className="absolute z-10 pointer-events-none bg-surface-container-high/95 border border-outline-variant/30 text-on-surface p-2.5 rounded-lg shadow-lg font-label-md text-xs backdrop-blur-md flex flex-col gap-1 transition-all duration-75"
+          style={{
+            left: `calc(${(hoveredPoint.x / width) * 100}% + ${
+              hoveredPoint.x < 50 ? 4 : hoveredPoint.x > width - 50 ? -4 : 0
+            }px)`,
+            top: `${(hoveredPoint.y / height) * 100 - 8}%`,
+            transform: `translate(${
+              hoveredPoint.x < 50 ? '0%' : hoveredPoint.x > width - 50 ? '-100%' : '-50%'
+            }, -100%)`,
+          }}
+        >
+          <div className="text-on-surface-variant font-bold">
+            {new Date(hoveredPoint.recorded_at).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              month: '2-digit',
+              day: '2-digit',
+            })}
+          </div>
+          <div className="font-bold flex items-center gap-1.5" style={{ color }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+            {hoveredPoint.val.toFixed(field === 'temp' ? 1 : 2)}{unit}
+          </div>
         </div>
       )}
     </div>
@@ -170,10 +345,19 @@ export function DashboardPage() {
   const weatherHistory = history.filter(h => h.temp !== null);
   const soilHistory = history.filter(h => h.soil_moisture !== null);
 
-  const tempPoints = weatherHistory.map(h => h.temp);
-  const soilPoints = soilHistory.map(h => h.soil_moisture);
-
   const lastUpdatedLabel = timeAgo(lastUpdate);
+
+  const endTime = Date.now();
+  let startTime = endTime;
+  if (range === '1h') startTime = endTime - 60 * 60 * 1000;
+  else if (range === '24h') startTime = endTime - 24 * 60 * 60 * 1000;
+  else if (range === '3d') startTime = endTime - 3 * 24 * 60 * 60 * 1000;
+
+  const startLabel = new Date(startTime).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
+  });
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-12">
@@ -463,18 +647,12 @@ export function DashboardPage() {
               {historyLoading ? (
                 <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
               ) : (
-                <BarChart points={tempPoints} color="var(--md-sys-color-primary, #2d6a4f)" />
+                <InteractiveLineChart history={weatherHistory} field="temp" range={range} color="var(--md-sys-color-primary, #2d6a4f)" unit="°C" />
               )}
               <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
-                {tempPoints.length > 0 ? (
+                {!historyLoading && weatherHistory.length > 0 ? (
                   <>
-                    <span>
-                      {new Date(weatherHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
-                      })}
-                    </span>
+                    <span>{startLabel}</span>
                     <span>Bây giờ</span>
                   </>
                 ) : (
@@ -498,18 +676,12 @@ export function DashboardPage() {
               {historyLoading ? (
                 <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
               ) : (
-                <LineChart history={soilHistory} field="soil_moisture" color="#94492c" />
+                <InteractiveLineChart history={soilHistory} field="soil_moisture" range={range} color="#94492c" unit="%" />
               )}
               <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
-                {soilPoints.length > 0 ? (
+                {!historyLoading && soilHistory.length > 0 ? (
                   <>
-                    <span>
-                      {new Date(soilHistory[0]?.recorded_at ?? '').toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        ...(range === '3d' ? { month: '2-digit', day: '2-digit' } : {})
-                      })}
-                    </span>
+                    <span>{startLabel}</span>
                     <span>Bây giờ</span>
                   </>
                 ) : (
