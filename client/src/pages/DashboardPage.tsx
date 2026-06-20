@@ -456,9 +456,6 @@ export function DashboardPage() {
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <h4 className="font-headline-md text-primary">Nhiệt độ ({range === '1h' ? '1 Giờ' : range === '24h' ? '24 Giờ' : '3 Ngày'})</h4>
-                  <p className="font-label-md text-on-surface-variant">
-                    Nhiệt độ · {tempPoints.length} điểm dữ liệu
-                  </p>
                 </div>
                 {!historyLoading && weatherHistory.length > 0 && (
                   <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
@@ -494,13 +491,10 @@ export function DashboardPage() {
               <div className="flex justify-between items-center mb-8">
                 <div>
                   <h4 className="font-headline-md text-primary">Độ ẩm đất ({range === '1h' ? '1 Giờ' : range === '24h' ? '24 Giờ' : '3 Ngày'})</h4>
-                  <p className="font-label-md text-on-surface-variant">
-                    Lịch sử · {soilPoints.length} điểm dữ liệu
-                  </p>
                 </div>
                 {!historyLoading && soilHistory.length > 0 && (
                   <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
-                    {soilHistory[soilHistory.length - 1]?.soil_moisture}% hiện tại
+                    {soilHistory[soilHistory.length - 1]?.soil_moisture?.toFixed(2)}% hiện tại
                   </span>
                 )}
               </div>

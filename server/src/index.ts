@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import sensorRoutes from './routes/sensors.js';
 import pumpRoutes from './routes/pump.js';
 import deviceRoutes from './routes/devices.js';
+import weatherRoutes from './routes/weather.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +35,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sensors', sensorRoutes);
 app.use('/api/pump', pumpRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // SSE endpoint (JWT via httpOnly cookie — EventSource auto-sends cookies with credentials: true)
 app.get('/api/events', (req, res) => {
