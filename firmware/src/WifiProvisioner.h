@@ -45,7 +45,7 @@ public:
   bool isConnected() const { return _wifiConnected; }
 
   // Save credentials from web form
-  bool saveCredentials(const char* ssid, const char* password);
+  bool saveCredentials(const char* ssid, const char* password, const char* mqttHost);
 
   // Clear stored credentials (call before ESP.restart())
   void clearCredentials();
@@ -57,20 +57,27 @@ public:
   void onReset(ResetCallback cb) { _resetCallback = cb; }
 
   String getSSID() const { return _ssid; }
+  String getPassword() const { return _password; }
+  String getMqttHost() const { return _mqttHost; }
+  String getAPName() const { return String(_apName); }
   IPAddress getAPIP() const { return WiFi.softAPIP(); }
 
 private:
   char _apName[32];
   String _ssid;
   String _password;
+  String _mqttHost;
   bool _provisioning;
   bool _wifiConnected;
   Preferences _prefs;
   ResetCallback _resetCallback;
 
+  uint32_t _apStartTime;
+
   bool loadFromStorage();
   bool connectWithFastFail();
   void startAP();
+  void stopAP();
 };
 
 #endif // WIFI_PROVISIONER_H

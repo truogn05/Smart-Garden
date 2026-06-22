@@ -10,7 +10,7 @@
 // RELAY_PIN defined in Config.h
 
 // ── Globals ────────────────────────────────────────────────────────────────────
-WifiProvisioner _wifi;
+WifiProvisioner _wifi("pump");
 MqttManager* _mqtt = nullptr;
 EspNowManager _espnow;
 
@@ -44,6 +44,10 @@ void setup() {
   });
 
   _mqtt = new MqttManager(DEVICE_CODE);
+  String mqttHost = _wifi.getMqttHost();
+  if (mqttHost.length() > 0) {
+    _mqtt->setServer(mqttHost.c_str(), MQTT_PORT);
+  }
   _mqtt->setCallback([](char* topic, uint8_t* payload, unsigned int length) {
     payload[length] = '\0';
     Serial.printf("[MQTT] Rx: %s → %s\n", topic, (char*)payload);
@@ -100,15 +104,17 @@ void setup() {
   _mqtt->subscribe(commandTopic, QOS_COMMAND);
   Serial.printf("[MQTT] Subscribed: %s\n", commandTopic);
 
+  char resetTopic[64];
+  snprintf(resetTopic, sizeof(resetTopic), TOPIC_RESET_COMMAND, DEVICE_CODE);
+  _mqtt->subscribe(resetTopic, QOS_COMMAND);
+  Serial.printf("[MQTT] Subscribed: %s\n", resetTopic);
+
   Serial.println("=== Pump Ready ===");
 }
 
 // ── Main loop ──────────────────────────────────────────────────────────────────
 void loop() {
-  if (_wifi.isProvisioning()) {
-    _wifi.handleProvisioning();
-    return;
-  }
+  _wifi.handleProvisioning();
 
   if (!_wifi.isConnected()) return;
   _espnow.loop();

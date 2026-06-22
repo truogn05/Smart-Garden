@@ -8,11 +8,11 @@
 // Override with build_flags: -DWIFI_SSID='"MyNetwork"' -DWIFI_PASSWORD='"MyPass"'
 // ============================================================
 #ifndef WIFI_SSID
-#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_SSID "P108A"
 #endif
 
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_PASSWORD "88888888"
 #endif
 
 // ============================================================
@@ -82,11 +82,11 @@
 // ============================================================
 #define MQTT_RECONNECT_INITIAL_MS  1000
 #define MQTT_RECONNECT_MAX_MS      60000
-#define SENSOR_READ_INTERVAL_MS     30000
-#define HEARTBEAT_INTERVAL_MS      60000
-#define DRYOUT_PREDICT_INTERVAL_MS 60000
-#define STATUS_PUBLISH_INTERVAL_MS  10000
-#define AI_SAVE_INTERVAL_MS        600000  // 10 min
+#define SENSOR_READ_INTERVAL_MS    10000   // 10 sec (temporary for testing)
+#define HEARTBEAT_INTERVAL_MS      300000   // 5 min
+#define DRYOUT_PREDICT_INTERVAL_MS 600000   // 10 min
+#define STATUS_PUBLISH_INTERVAL_MS  60000   // 1 min
+#define AI_SAVE_INTERVAL_MS        600000   // 10 min
 
 // Fast-fail: enter AP mode after N ms if WiFi doesn't connect (demo mode)
 #ifndef WIFI_CONNECT_TIMEOUT_MS
@@ -104,9 +104,9 @@
 // Override with build_flags if needed: -DDHT_PIN=21
 // ============================================================
 #ifndef DHT_PIN
-#define DHT_PIN 4
+#define DHT_PIN 14
 #endif
-#define DHT_TYPE DHT22
+#define DHT_TYPE DHT11
 
 #ifndef SOIL_ADC_PIN
 #define SOIL_ADC_PIN 32

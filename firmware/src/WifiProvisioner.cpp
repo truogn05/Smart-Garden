@@ -19,19 +19,28 @@ bool WifiProvisioner::begin() {
   if (loadFromStorage()) {
     Serial.printf("[WiFi] Stored SSID: %s — attempting connection...\n", _ssid.c_str());
     _wifiConnected = connectWithFastFail();
-    if (_wifiConnected) return true;
+  } else {
+    // Fallback to hardcoded credentials
+    _ssid = WIFI_SSID;
+    _password = WIFI_PASSWORD;
+    _mqttHost = MQTT_BROKER;
+    if (_ssid.length() > 0 && _ssid != "YOUR_WIFI_SSID") {
+      Serial.printf("[WiFi] Using default SSID: %s — attempting connection...\n", _ssid.c_str());
+      _wifiConnected = connectWithFastFail();
+    }
   }
 
-  Serial.println("[WiFi] No credentials or connect failed — starting AP mode");
+  Serial.printf("[WiFi] Starting AP '%s' alongside STA for 3-minute configuration window\n", _apName);
   startAP();
-  return false;
+  return _wifiConnected;
 }
 
 // ── AP mode ───────────────────────────────────────────────────────────────────
 
 void WifiProvisioner::startAP() {
   _provisioning = true;
-  WiFi.mode(WIFI_AP);
+  _apStartTime = millis();
+  WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(_apName);
   delay(200);
 
@@ -41,6 +50,11 @@ void WifiProvisioner::startAP() {
   // ── Root: provisioning form ──────────────────────────────────────────────
   _server.on("/", HTTP_GET, []() {
     String apIP = WiFi.softAPIP().toString();
+    String currentMqtt = _instance ? _instance->getMqttHost() : MQTT_BROKER;
+    String currentSsid = _instance ? _instance->getSSID() : "";
+    String currentPassword = _instance ? _instance->getPassword() : "";
+    String passwordValue = currentPassword.length() > 0 ? "********" : "";
+    String apTitle = _instance ? _instance->getAPName() + " Setup" : "SmartGarden Setup";
     String html = R"rawl(
 <!DOCTYPE html>
 <html>
@@ -59,10 +73,11 @@ void WifiProvisioner::startAP() {
   </style>
 </head>
 <body>
-  <h2>SmartGarden Setup</h2>
+  <h2>)rawl" + apTitle + R"rawl(</h2>
   <form action="/save" method="POST" id="setupForm">
-    <input name="ssid" placeholder="WiFi SSID" required>
-    <input name="password" type="password" placeholder="WiFi Password">
+    <input name="ssid" placeholder="WiFi SSID" value=")rawl" + currentSsid + R"rawl(" required>
+    <input name="password" type="password" placeholder="WiFi Password" value=")rawl" + passwordValue + R"rawl(">
+    <input name="mqtt_host" placeholder="MQTT Broker IP" value=")rawl" + currentMqtt + R"rawl(" required>
     <button type="submit" class="btn-connect">Save & Connect</button>
   </form>
   <form action="/reset" method="GET">
@@ -75,13 +90,14 @@ void WifiProvisioner::startAP() {
 
   // ── POST /save: save credentials and reboot ───────────────────────────────
   _server.on("/save", HTTP_POST, []() {
-    if (!_server.hasArg("ssid") || !_server.hasArg("password")) {
-      _server.send(400, "text/plain", "Missing SSID or password");
+    if (!_server.hasArg("ssid") || !_server.hasArg("password") || !_server.hasArg("mqtt_host")) {
+      _server.send(400, "text/plain", "Missing fields");
       return;
     }
     String ssid = _server.arg("ssid");
     String password = _server.arg("password");
-    if (_instance && _instance->saveCredentials(ssid.c_str(), password.c_str())) {
+    String mqttHost = _server.arg("mqtt_host");
+    if (_instance && _instance->saveCredentials(ssid.c_str(), password.c_str(), mqttHost.c_str())) {
       _server.send(200, "text/html",
         "<html><body><h2 style='color:#2e7d32'>Saved! Rebooting...</h2>"
         "<p>Device will connect to your WiFi shortly.</p></body></html>");
@@ -94,6 +110,11 @@ void WifiProvisioner::startAP() {
 
   // ── GET /reset: reset form (same as root, pre-selected) ───────────────────
   _server.on("/reset", HTTP_GET, []() {
+    String currentMqtt = _instance ? _instance->getMqttHost() : MQTT_BROKER;
+    String currentSsid = _instance ? _instance->getSSID() : "";
+    String currentPassword = _instance ? _instance->getPassword() : "";
+    String passwordValue = currentPassword.length() > 0 ? "********" : "";
+    String apTitle = _instance ? _instance->getAPName() + " Reset" : "Reset WiFi Credentials";
     String html = R"rawl(
 <!DOCTYPE html>
 <html>
@@ -108,11 +129,12 @@ void WifiProvisioner::startAP() {
   </style>
 </head>
 <body>
-  <h2>Reset WiFi Credentials</h2>
+  <h2>)rawl" + apTitle + R"rawl(</h2>
   <p>Enter new credentials below. Previous WiFi settings will be cleared.</p>
   <form action="/save" method="POST">
-    <input name="ssid" placeholder="WiFi SSID" required>
-    <input name="password" type="password" placeholder="WiFi Password" required>
+    <input name="ssid" placeholder="WiFi SSID" value=")rawl" + currentSsid + R"rawl(" required>
+    <input name="password" type="password" placeholder="WiFi Password" value=")rawl" + passwordValue + R"rawl(">
+    <input name="mqtt_host" placeholder="MQTT Broker IP" value=")rawl" + currentMqtt + R"rawl(" required>
     <button type="submit" class="btn-clear">Clear & Save New</button>
   </form>
 </body>
@@ -126,31 +148,50 @@ void WifiProvisioner::startAP() {
 // ── Loop handler (call in loop() when in AP mode) ─────────────────────────────
 
 void WifiProvisioner::handleProvisioning() {
-  if (_provisioning) _server.handleClient();
+  if (_provisioning) {
+    _server.handleClient();
+    if (millis() - _apStartTime > 180000) {
+      stopAP();
+    }
+  }
+}
+
+void WifiProvisioner::stopAP() {
+  _provisioning = false;
+  WiFi.mode(WIFI_STA);
+  Serial.println("[WiFi] AP disabled, mode set to STA");
 }
 
 // ── Credentials storage ───────────────────────────────────────────────────────
 
-bool WifiProvisioner::saveCredentials(const char* ssid, const char* password) {
-  _prefs.begin("smartgarden-wifi", false);
-  bool ok = _prefs.putString("ssid", ssid) > 0
-         && _prefs.putString("password", password) > 0;
+bool WifiProvisioner::saveCredentials(const char* ssid, const char* password, const char* mqttHost) {
+  _prefs.begin("smart-wifi", false);
+  size_t ssidLen = _prefs.putString("ssid", ssid);
+  String newPassword = password;
+  if (newPassword == "********") {
+    newPassword = _password;
+  }
+  size_t passLen = _prefs.putString("password", newPassword.c_str());
+  size_t hostLen = _prefs.putString("mqtt_host", mqttHost);
   _prefs.end();
 
+  bool ok = (ssidLen > 0);
   if (ok) {
     _ssid = ssid;
-    _password = password;
-    Serial.printf("[WiFi] Saved: SSID=%s\n", ssid);
+    _password = newPassword;
+    _mqttHost = mqttHost;
+    Serial.printf("[WiFi] Saved: SSID=%s, MQTT=%s\n", ssid, mqttHost);
   }
   return ok;
 }
 
 void WifiProvisioner::clearCredentials() {
-  _prefs.begin("smartgarden-wifi", false);
+  _prefs.begin("smart-wifi", false);
   _prefs.clear();
   _prefs.end();
   _ssid = "";
   _password = "";
+  _mqttHost = "";
   _wifiConnected = false;
   Serial.println("[WiFi] Credentials cleared");
 }
@@ -167,9 +208,10 @@ bool WifiProvisioner::triggerReset() {
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 bool WifiProvisioner::loadFromStorage() {
-  _prefs.begin("smartgarden-wifi", true);
+  _prefs.begin("smart-wifi", true);
   _ssid = _prefs.getString("ssid", "");
   _password = _prefs.getString("password", "");
+  _mqttHost = _prefs.getString("mqtt_host", MQTT_BROKER);
   _prefs.end();
   return _ssid.length() > 0;
 }

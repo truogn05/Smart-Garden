@@ -7,6 +7,7 @@ MqttManager::MqttManager(const char* deviceCode)
 
   _client.setBufferSize(MQTT_BUFFER_SIZE);
   _client.setKeepAlive(15);
+  setServer(MQTT_BROKER, MQTT_PORT);
 
 #ifdef MQTT_USE_TLS
   // HiveMQ Cloud: TLS required
@@ -14,14 +15,21 @@ MqttManager::MqttManager(const char* deviceCode)
 #endif
 }
 
+void MqttManager::setServer(const char* host, uint16_t port) {
+  strncpy(_brokerHost, host, sizeof(_brokerHost) - 1);
+  _brokerHost[sizeof(_brokerHost) - 1] = '\0';
+  _brokerPort = port;
+  _client.setServer(_brokerHost, _brokerPort);
+}
+
 bool MqttManager::connect() {
   char clientId[64];
   snprintf(clientId, sizeof(clientId), "%s%s", MQTT_CLIENT_ID_PREFIX, _deviceCode);
 
 #ifdef MQTT_USE_TLS
-  Serial.printf("[MQTT] Connecting (TLS) to %s:%d as %s\n", MQTT_BROKER, MQTT_PORT, clientId);
+  Serial.printf("[MQTT] Connecting (TLS) to %s:%d as %s\n", _brokerHost, _brokerPort, clientId);
 #else
-  Serial.printf("[MQTT] Connecting (plain) to %s:%d as %s\n", MQTT_BROKER, MQTT_PORT, clientId);
+  Serial.printf("[MQTT] Connecting (plain) to %s:%d as %s\n", _brokerHost, _brokerPort, clientId);
 #endif
 
   char lwtTopic[64];

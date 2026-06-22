@@ -16,7 +16,7 @@ void publishHeartbeat();
 DHT _dht(DHT_PIN, DHT_TYPE);
 
 // ── Globals ────────────────────────────────────────────────────────────────────
-WifiProvisioner _wifi;
+WifiProvisioner _wifi("sensor");
 MqttManager* _mqtt = nullptr;
 DryoutPredictor _predictor;
 
@@ -62,9 +62,16 @@ void setup() {
 
   // Initialize DHT
   _dht.begin();
+  delay(100);
+  Serial.printf("[DEBUG] DHT Pin %d raw state: %d (1 = HIGH, 0 = LOW). Normal idle state should be 1.\n", DHT_PIN, digitalRead(DHT_PIN));
 
-  // Seed averaging buffers
-  for (int i = 0; i < ADC_SAMPLES; i++) _soilReadings[i] = 2048;
+  // Seed averaging buffers with actual initial readings
+  int initialSoil = analogRead(SOIL_ADC_PIN);
+  int initialRain = analogRead(RAIN_ADC_PIN);
+  for (int i = 0; i < ADC_SAMPLES; i++) {
+    _soilReadings[i] = initialSoil;
+    _rainReadings[i] = initialRain;
+  }
 
   // Load AI model from flash (or use defaults)
   _predictor.loadFromFlash();
@@ -76,6 +83,10 @@ void setup() {
 
   // MQTT
   _mqtt = new MqttManager(DEVICE_CODE);
+  String mqttHost = _wifi.getMqttHost();
+  if (mqttHost.length() > 0) {
+    _mqtt->setServer(mqttHost.c_str(), MQTT_PORT);
+  }
   _mqtt->setCallback([](char* topic, uint8_t* payload, unsigned int length) {
     payload[length] = '\0';
     Serial.printf("[MQTT] Rx: %s → %s\n", topic, (char*)payload);
@@ -109,6 +120,14 @@ void setup() {
   });
   _mqtt->connect();
 
+  char resetTopic[64];
+  snprintf(resetTopic, sizeof(resetTopic), TOPIC_RESET_COMMAND, DEVICE_CODE);
+  _mqtt->subscribe(resetTopic, QOS_COMMAND);
+
+  char statusTopic[64];
+  snprintf(statusTopic, sizeof(statusTopic), TOPIC_PUMP_STATUS, "PUMP_001");
+  _mqtt->subscribe(statusTopic, QOS_TELEMETRY);
+
   // Initial reads
   readAndPublishSensors();
   predictAndPublishDryout();
@@ -118,11 +137,8 @@ void setup() {
 
 // ── Main loop ──────────────────────────────────────────────────────────────────
 void loop() {
-  // AP mode: serve web pages
-  if (_wifi.isProvisioning()) {
-    _wifi.handleProvisioning();
-    return;
-  }
+  // Handle provisioning web page requests if active
+  _wifi.handleProvisioning();
 
   // WiFi down: skip to next iteration
   if (!_wifi.isConnected()) return;
@@ -190,7 +206,7 @@ void readAndPublishSensors() {
   snprintf(topic, sizeof(topic), TOPIC_WEATHER, DEVICE_CODE);
   snprintf(payload, sizeof(payload),
     "{\"temp\":%.1f,\"humidity\":%.1f,\"rain\":%d,\"ts\":%lu}",
-    temp, humidity, _currentRainIntensity, ts);
+    temp, humidity, (int)_currentRainIntensity, ts);
   _mqtt->publish(topic, payload);
   Serial.printf("[MQTT] Weather: %s\n", payload);
 

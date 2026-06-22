@@ -13,6 +13,7 @@
 class MqttManager {
 public:
   MqttManager(const char* deviceCode);
+  void setServer(const char* host, uint16_t port);
 
   bool connect();
   void disconnect();
@@ -35,6 +36,8 @@ private:
 #endif
   PubSubClient _client;
   char _deviceCode[32];
+  char _brokerHost[64];
+  uint16_t _brokerPort;
   uint32_t _reconnectInterval;
 };
 
