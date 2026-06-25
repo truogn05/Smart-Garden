@@ -189,7 +189,21 @@ export function useSensorData() {
     const cleanup = createSSEConnection(
       (data) => {
         if (!data || typeof data !== 'object') return;
-        if ('temp' in data || 'soil_moisture' in data || 'moisture' in data) {
+        if ('type' in data && (data as any).type === 'device_status') {
+          const status = data as any;
+          setState(s => ({
+            ...s,
+            devices: s.devices.map(d =>
+              d.device_code === status.device_code
+                ? {
+                    ...d,
+                    is_active: status.is_active,
+                    last_seen: status.is_active ? new Date().toISOString() : d.last_seen
+                  }
+                : d
+            )
+          }));
+        } else if ('temp' in data || 'soil_moisture' in data || 'moisture' in data) {
           const incoming = data as any;
           setState(s => {
             const prev = s.sensor;

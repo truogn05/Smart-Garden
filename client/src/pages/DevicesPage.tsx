@@ -1,6 +1,14 @@
 import { Droplets, Cpu, Wifi, CloudSync } from 'lucide-react';
+import { useSensorData } from '../hooks/useSensorData';
 
 export function DevicesPage() {
+  const { devices, devicesLoading } = useSensorData();
+
+  const sensorDevice = devices.find(d => d.device_type === 'sensor');
+  const systemUptime = sensorDevice?.uptime !== null && sensorDevice?.uptime !== undefined 
+    ? `${sensorDevice.uptime}s` 
+    : 'N/A';
+
   return (
     <div className="max-w-7xl mx-auto w-full flex flex-col gap-8 pb-24">
       {/* Page Header */}
@@ -32,51 +40,60 @@ export function DevicesPage() {
         <section className="lg:col-span-7 flex flex-col gap-6">
           <h3 className="font-headline-md text-headline-md text-primary">Active Nodes</h3>
           <div className="flex flex-col gap-4">
-            {/* Pump */}
-            <div className="glass-panel rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-[0_40px_80px_rgba(23,49,36,0.05)] transition-shadow duration-300">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary">
-                  <Droplets size={24} />
-                </div>
-                <div>
-                  <h4 className="font-label-md text-label-md text-on-surface">PUMP_001</h4>
-                  <p className="font-body-md text-sm text-on-surface-variant mt-1">192.168.1.104</p>
-                </div>
+            {devicesLoading ? (
+              <div className="glass-panel rounded-xl p-8 text-center text-on-surface-variant">
+                Loading nodes...
               </div>
-              <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="flex flex-col items-end">
-                  <span className="font-body-md text-sm text-outline">Signal</span>
-                  <span className="font-label-md text-label-md text-primary">-42dBm</span>
-                </div>
-                <div className="flex items-center gap-2 bg-primary-container/20 px-3 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
-                  <span className="font-label-md text-xs text-primary-container">Online</span>
-                </div>
+            ) : devices.length === 0 ? (
+              <div className="glass-panel rounded-xl p-8 text-center text-on-surface-variant">
+                No active nodes found.
               </div>
-            </div>
+            ) : (
+              devices.map((device) => {
+                const isSensor = device.device_type === 'sensor';
+                const isOnline = device.is_active;
+                const ipStr = device.ip_address || 'Not available';
+                const signalStr = device.rssi !== null && device.rssi !== undefined ? `${device.rssi}dBm` : 'N/A';
+                const uptimeStr = device.uptime !== null && device.uptime !== undefined ? `${device.uptime}s` : 'N/A';
 
-            {/* Sensor */}
-            <div className="glass-panel rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-[0_40px_80px_rgba(23,49,36,0.05)] transition-shadow duration-300">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary">
-                  <Cpu size={24} />
-                </div>
-                <div>
-                  <h4 className="font-label-md text-label-md text-on-surface">SENSOR_001</h4>
-                  <p className="font-body-md text-sm text-on-surface-variant mt-1">192.168.1.105</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="flex flex-col items-end">
-                  <span className="font-body-md text-sm text-outline">Signal</span>
-                  <span className="font-label-md text-label-md text-primary">-45dBm</span>
-                </div>
-                <div className="flex items-center gap-2 bg-primary-container/20 px-3 py-1.5 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
-                  <span className="font-label-md text-xs text-primary-container">Online</span>
-                </div>
-              </div>
-            </div>
+                return (
+                  <div
+                    key={device.device_code}
+                    className="glass-panel rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-[0_40px_80px_rgba(23,49,36,0.05)] transition-shadow duration-300"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                        {isSensor ? <Cpu size={24} /> : <Droplets size={24} />}
+                      </div>
+                      <div>
+                        <h4 className="font-label-md text-label-md text-on-surface">
+                          {device.device_name || (isSensor ? 'Garden Sensor' : 'Water Pump')} ({device.device_code})
+                        </h4>
+                        <p className="font-body-md text-sm text-on-surface-variant mt-1">{ipStr}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="flex flex-col items-end min-w-[70px]">
+                        <span className="font-body-md text-sm text-outline">Signal</span>
+                        <span className="font-label-md text-label-md text-primary">{signalStr}</span>
+                      </div>
+                      <div className="flex flex-col items-end min-w-[70px]">
+                        <span className="font-body-md text-sm text-outline">Uptime</span>
+                        <span className="font-label-md text-label-md text-primary">{uptimeStr}</span>
+                      </div>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                        isOnline 
+                          ? 'bg-primary-container/20 text-primary-container' 
+                          : 'bg-outline-variant/20 text-outline'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-primary-container animate-pulse' : 'bg-outline'}`} />
+                        <span className="font-label-md text-xs">{isOnline ? 'Online' : 'Offline'}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -92,7 +109,7 @@ export function DevicesPage() {
               </div>
               <div>
                 <p className="font-body-md text-sm text-on-surface-variant mb-2">Uptime</p>
-                <p className="font-data-display text-data-display text-primary">3600<span className="text-lg font-body-md text-outline ml-1">s</span></p>
+                <p className="font-data-display text-data-display text-primary">{systemUptime}</p>
               </div>
             </div>
             <div className="h-px w-full bg-surface-variant my-2 z-10" />

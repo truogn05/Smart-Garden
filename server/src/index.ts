@@ -52,6 +52,42 @@ app.get('/api/events', (req, res) => {
   req.on('close', () => removeClient(res));
 });
 
+async function ensureSchema() {
+  try {
+    console.log('[DB] Ensuring devices table columns exist...');
+    await query(`
+      ALTER TABLE devices 
+      ADD COLUMN IF NOT EXISTS ip_address TEXT,
+      ADD COLUMN IF NOT EXISTS rssi INTEGER,
+      ADD COLUMN IF NOT EXISTS uptime BIGINT
+    `);
+    console.log('[DB] Schema verification completed.');
+  } catch (error: any) {
+    console.error('[DB] Failed to ensure schema columns:', error.message);
+  }
+}
+
+async function updateDeviceStatuses() {
+  try {
+    const result = await query(`
+      UPDATE devices 
+      SET is_active = false 
+      WHERE (last_seen < NOW() - INTERVAL '5 minutes' OR last_seen IS NULL) 
+        AND is_active = true
+      RETURNING device_code
+    `);
+    
+    if (result.rows.length > 0) {
+      for (const row of result.rows) {
+        console.log(`[Devices] Device ${row.device_code} went offline (no heartbeat for 5m)`);
+        broadcast('device:status', { device_code: row.device_code, is_active: false });
+      }
+    }
+  } catch (err: any) {
+    console.error('[Devices] Status update error:', err.message);
+  }
+}
+
 async function cleanOldData() {
   try {
     console.log('[DB] Running database retention cleanup (older than 3 days)...');
@@ -67,13 +103,21 @@ async function cleanOldData() {
 }
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`[Server] SmartGarden server running on port ${PORT}`);
+    
+    // Ensure DB columns exist
+    await ensureSchema();
+    
     startMqttBridge(broadcast);
     
     // Run cleanup on startup, then every hour
     cleanOldData();
     setInterval(cleanOldData, 60 * 60 * 1000);
+    
+    // Sweeper check on startup, then every 10 seconds
+    updateDeviceStatuses();
+    setInterval(updateDeviceStatuses, 10 * 1000);
   });
 }
 

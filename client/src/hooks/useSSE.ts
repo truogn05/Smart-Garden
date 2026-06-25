@@ -78,6 +78,11 @@ export function createSSEConnection(onMessage: MessageHandler, onConnectionChang
       onMessage(JSON.parse(e.data));
     });
 
+    es.addEventListener('device:status', (e) => {
+      const d = JSON.parse(e.data);
+      onMessage({ type: 'device_status', device_code: d.device_code, is_active: d.is_active });
+    });
+
     es.onerror = () => {
       es?.close();
       es = null;

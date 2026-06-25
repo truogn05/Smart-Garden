@@ -140,6 +140,9 @@ void loop() {
   // Handle provisioning web page requests if active
   _wifi.handleProvisioning();
 
+  // Update AP state based on MQTT connection
+  _wifi.updateAPState(_mqtt && _mqtt->isConnected());
+
   // WiFi down: skip to next iteration
   if (!_wifi.isConnected()) return;
 
@@ -258,8 +261,8 @@ void publishHeartbeat() {
   char topic[64], payload[256];
   snprintf(topic, sizeof(topic), TOPIC_HEARTBEAT, DEVICE_CODE);
   snprintf(payload, sizeof(payload),
-    "{\"uptime\":%lu,\"rssi\":%d,\"free_heap\":%lu}",
-    millis() / 1000, WiFi.RSSI(), ESP.getFreeHeap());
+    "{\"uptime\":%lu,\"rssi\":%d,\"free_heap\":%lu,\"ip\":\"%s\"}",
+    millis() / 1000, WiFi.RSSI(), ESP.getFreeHeap(), WiFi.localIP().toString().c_str());
 
   _mqtt->publish(topic, payload);
   Serial.printf("[MQTT] Heartbeat: %s\n", payload);

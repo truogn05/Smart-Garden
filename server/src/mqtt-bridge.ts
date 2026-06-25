@@ -91,6 +91,26 @@ export async function handleMessage(topic: string, payload: Buffer): Promise<voi
 
   console.log(`[MQTT] ${topic}:`, JSON.stringify(data).slice(0, 120));
 
+  // Update last seen and active status for the device
+  try {
+    const result = await query(
+      'UPDATE devices SET last_seen = NOW(), is_active = true WHERE device_code = $1 AND (is_active = false OR last_seen IS NULL) RETURNING device_code',
+      [deviceCode]
+    );
+    if (result.rows.length > 0) {
+      console.log(`[Devices] Device ${deviceCode} came online`);
+      broadcast('device:status', { device_code: deviceCode, is_active: true });
+    } else {
+      // Just update last_seen if already active
+      await query(
+        'UPDATE devices SET last_seen = NOW() WHERE device_code = $1',
+        [deviceCode]
+      );
+    }
+  } catch (error) {
+    console.error(`[MQTT] Failed to update device activity for ${deviceCode}:`, error);
+  }
+
   switch (subTopic) {
     case 'sensor':
       await handleSensorMessage(deviceCode, subSubTopic, data);
@@ -103,6 +123,9 @@ export async function handleMessage(topic: string, payload: Buffer): Promise<voi
       break;
     case 'device':
       await handleDeviceMessage(deviceCode, subSubTopic, data);
+      break;
+    case 'heartbeat':
+      await handleHeartbeatMessage(deviceCode, data);
       break;
     default:
       break;
@@ -180,6 +203,24 @@ async function handlePumpMessage(
   }
 }
 
+async function handleHeartbeatMessage(
+  deviceCode: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  try {
+    const rssi = data.rssi !== undefined ? Number(data.rssi) : null;
+    const uptime = data.uptime !== undefined ? Number(data.uptime) : null;
+    const ip = typeof data.ip === 'string' ? data.ip : null;
+
+    await query(
+      'UPDATE devices SET rssi = COALESCE($1, rssi), uptime = COALESCE($2, uptime), ip_address = COALESCE($3, ip_address) WHERE device_code = $4',
+      [rssi, uptime, ip, deviceCode]
+    );
+  } catch (error) {
+    console.error('[MQTT] handleHeartbeatMessage update error:', error);
+  }
+}
+
 async function handleDeviceMessage(
   deviceCode: string,
   type: string,
@@ -187,12 +228,16 @@ async function handleDeviceMessage(
 ): Promise<void> {
   if (type === 'heartbeat') {
     try {
+      const rssi = data.rssi !== undefined ? Number(data.rssi) : null;
+      const uptime = data.uptime !== undefined ? Number(data.uptime) : null;
+      const ip = typeof data.ip === 'string' ? data.ip : null;
+
       await query(
-        'UPDATE devices SET last_seen = NOW(), is_active = true WHERE device_code = $1',
-        [deviceCode]
+        'UPDATE devices SET rssi = COALESCE($1, rssi), uptime = COALESCE($2, uptime), ip_address = COALESCE($3, ip_address) WHERE device_code = $4',
+        [rssi, uptime, ip, deviceCode]
       );
     } catch (error) {
-      console.error('[MQTT] heartbeat update error:', error);
+      console.error('[MQTT] handleDeviceMessage heartbeat update error:', error);
     }
   }
 }

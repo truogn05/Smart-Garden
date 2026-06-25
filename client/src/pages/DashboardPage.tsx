@@ -36,7 +36,7 @@ function getBezierPath(pts: { x: number; y: number }[]): string {
 
 interface InteractiveLineChartProps {
   history: HistoryPoint[];
-  field: 'temp' | 'soil_moisture';
+  field: 'temp' | 'humidity' | 'soil_moisture';
   range: '1h' | '24h' | '3d';
   color: string;
   unit: string;
@@ -288,7 +288,7 @@ function InteractiveLineChart({ history, field, range, color, unit }: Interactiv
           </div>
           <div className="font-bold flex items-center gap-1.5" style={{ color }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-            {hoveredPoint.val.toFixed(field === 'temp' ? 1 : 2)}{unit}
+            {hoveredPoint.val.toFixed(field === 'temp' || field === 'humidity' ? 1 : 2)}{unit}
           </div>
         </div>
       )}
@@ -631,8 +631,8 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Weather history */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Weather temp history */}
             <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
               <div className="flex justify-between items-center mb-8">
                 <div>
@@ -648,6 +648,35 @@ export function DashboardPage() {
                 <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
               ) : (
                 <InteractiveLineChart history={weatherHistory} field="temp" range={range} color="var(--md-sys-color-primary, #2d6a4f)" unit="°C" />
+              )}
+              <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
+                {!historyLoading && weatherHistory.length > 0 ? (
+                  <>
+                    <span>{startLabel}</span>
+                    <span>Bây giờ</span>
+                  </>
+                ) : (
+                  <span>Chưa có dữ liệu</span>
+                )}
+              </div>
+            </div>
+
+            {/* Weather humi history */}
+            <div className="glass-card organic-shadow rounded-lg p-6 md:p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h4 className="font-headline-md text-primary">Độ ẩm không khí ({range === '1h' ? '1 Giờ' : range === '24h' ? '24 Giờ' : '3 Ngày'})</h4>
+                </div>
+                {!historyLoading && weatherHistory.length > 0 && (
+                  <span className="text-xs font-label-md text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+                    {weatherHistory[weatherHistory.length - 1]?.humidity?.toFixed(1)}% hiện tại
+                  </span>
+                )}
+              </div>
+              {historyLoading ? (
+                <div className="h-48 bg-surface-variant animate-pulse rounded-lg" />
+              ) : (
+                <InteractiveLineChart history={weatherHistory} field="humidity" range={range} color="#0ea5e9" unit="%" />
               )}
               <div className="flex justify-between mt-4 text-[12px] text-on-surface-variant px-2">
                 {!historyLoading && weatherHistory.length > 0 ? (

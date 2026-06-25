@@ -7,7 +7,8 @@ static WebServer _server(80);
 static WifiProvisioner* _instance = nullptr;
 
 WifiProvisioner::WifiProvisioner(const char* apName)
-  : _provisioning(false), _wifiConnected(false), _resetCallback(nullptr) {
+  : _provisioning(false), _wifiConnected(false), _resetCallback(nullptr),
+    _apTimeout(0), _apTimerStarted(false) {
   strncpy(_apName, apName, sizeof(_apName) - 1);
   _apName[sizeof(_apName) - 1] = '\0';
   _instance = this;
@@ -150,16 +151,38 @@ void WifiProvisioner::startAP() {
 void WifiProvisioner::handleProvisioning() {
   if (_provisioning) {
     _server.handleClient();
-    if (millis() - _apStartTime > 180000) {
-      stopAP();
-    }
   }
 }
 
 void WifiProvisioner::stopAP() {
   _provisioning = false;
+  WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_STA);
   Serial.println("[WiFi] AP disabled, mode set to STA");
+}
+
+void WifiProvisioner::updateAPState(bool mqttConnected) {
+  uint32_t now = millis();
+  if (!mqttConnected) {
+    // If MQTT is not connected, the AP MUST be on.
+    if (!_provisioning) {
+      Serial.println("[WiFi] MQTT disconnected — Reactivating AP");
+      startAP();
+    }
+    _apTimerStarted = false;
+  } else {
+    // MQTT is connected. If AP is on, run the 3-minute countdown to turn it off.
+    if (_provisioning) {
+      if (!_apTimerStarted) {
+        _apTimeout = now + 180000; // 3 minutes = 180,000 ms
+        _apTimerStarted = true;
+        Serial.printf("[WiFi] MQTT Connected! AP will remain active for 3 minutes (until %lu ms)\n", _apTimeout);
+      } else if (now >= _apTimeout) {
+        stopAP();
+        _apTimerStarted = false;
+      }
+    }
+  }
 }
 
 // ── Credentials storage ───────────────────────────────────────────────────────

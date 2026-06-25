@@ -62,6 +62,8 @@ public:
   String getAPName() const { return String(_apName); }
   IPAddress getAPIP() const { return WiFi.softAPIP(); }
 
+  void updateAPState(bool mqttConnected);
+
 private:
   char _apName[32];
   String _ssid;
@@ -73,6 +75,8 @@ private:
   ResetCallback _resetCallback;
 
   uint32_t _apStartTime;
+  uint32_t _apTimeout;
+  bool _apTimerStarted;
 
   bool loadFromStorage();
   bool connectWithFastFail();

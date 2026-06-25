@@ -18,10 +18,12 @@ bool _pumpRunning = false;
 uint32_t _pumpStartTime = 0;
 uint32_t _pumpDuration = 0;
 char _currentCmdId[32] = {0};
+uint32_t _lastHeartbeat = 0;
 
 // ── Forward declarations ───────────────────────────────────────────────────────
 void publishStatus();
 void sendAck(const char* cmdId);
+void publishHeartbeat();
 
 // ── Setup ──────────────────────────────────────────────────────────────────────
 void setup() {
@@ -32,7 +34,7 @@ void setup() {
   Serial.printf("Device: %s\n", DEVICE_CODE);
 
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);  // OFF (active LOW)
+  digitalWrite(RELAY_PIN, LOW);   // OFF (active HIGH)
 
   if (!_wifi.begin()) {
     Serial.println("[WiFi] AP mode active — visit /reset page to provision");
@@ -68,7 +70,7 @@ void setup() {
         const char* cmdId = doc["cmd_id"] | "";
         if (cmdId[0]) strncpy(_currentCmdId, cmdId, sizeof(_currentCmdId) - 1);
 
-        digitalWrite(RELAY_PIN, LOW);
+        digitalWrite(RELAY_PIN, HIGH);
         _pumpRunning = true;
         _pumpDuration = duration;
         _pumpStartTime = millis();
@@ -76,7 +78,7 @@ void setup() {
         sendAck(_currentCmdId);
       }
       else if (strcmp(action, "stop") == 0) {
-        digitalWrite(RELAY_PIN, HIGH);
+        digitalWrite(RELAY_PIN, LOW);
         _pumpRunning = false;
         Serial.println("[PUMP] Stopped");
         publishStatus();
@@ -116,6 +118,9 @@ void setup() {
 void loop() {
   _wifi.handleProvisioning();
 
+  // Update AP state based on MQTT connection
+  _wifi.updateAPState(_mqtt && _mqtt->isConnected());
+
   if (!_wifi.isConnected()) return;
   _espnow.loop();
   _mqtt->loop();
@@ -124,7 +129,7 @@ void loop() {
   if (_pumpRunning && _pumpDuration > 0) {
     uint32_t elapsed = (millis() - _pumpStartTime) / 1000;
     if (elapsed >= _pumpDuration) {
-      digitalWrite(RELAY_PIN, HIGH);
+      digitalWrite(RELAY_PIN, LOW);
       _pumpRunning = false;
       Serial.println("[PUMP] Auto-stopped");
       publishStatus();
@@ -136,6 +141,11 @@ void loop() {
   if (now - lastStatus > STATUS_PUBLISH_INTERVAL_MS) {
     publishStatus();
     lastStatus = now;
+  }
+
+  if (now - _lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+    publishHeartbeat();
+    _lastHeartbeat = now;
   }
 }
 
@@ -172,4 +182,18 @@ void sendAck(const char* cmdId) {
 
   _mqtt->publish(topic, payload, (uint8_t)QOS_COMMAND);
   Serial.printf("[MQTT] ACK sent: %s\n", payload);
+}
+
+// ── Heartbeat ──────────────────────────────────────────────────────────────────
+void publishHeartbeat() {
+  if (!_mqtt || !_mqtt->isConnected()) return;
+
+  char topic[64], payload[256];
+  snprintf(topic, sizeof(topic), TOPIC_HEARTBEAT, DEVICE_CODE);
+  snprintf(payload, sizeof(payload),
+    "{\"uptime\":%lu,\"rssi\":%d,\"free_heap\":%lu,\"ip\":\"%s\"}",
+    millis() / 1000, WiFi.RSSI(), ESP.getFreeHeap(), WiFi.localIP().toString().c_str());
+
+  _mqtt->publish(topic, payload);
+  Serial.printf("[MQTT] Heartbeat: %s\n", payload);
 }
